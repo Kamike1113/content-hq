@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Content HQ — Andrei</title>
+<script src="data/briefing.js"></script>
+<script src="data/instagram.js"></script>
+<script src="data/x.js"></script>
+<script src="data/youtube.js"></script>
+<script src="data/agents.js"></script>
+<script src="data/todos.js"></script>
+<script src="data/pipeline.js"></script>
+<script src="data/competitors.js"></script>
+<style>
+  :root {
+    --bg: #0b0d12; --card: #141824; --card2: #1a2030; --border: #232a3d;
+    --text: #e8ecf4; --muted: #8b93a7; --accent: #6ea8fe; --green: #4ade80;
+    --red: #f87171; --amber: #fbbf24; --purple: #c084fc;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 28px 24px 64px; }
+  .wrap { max-width: 1240px; margin: 0 auto; }
+  header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 18px; flex-wrap: wrap; gap: 8px; }
+  h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+  h1 span { color: var(--accent); }
+  .date { color: var(--muted); font-size: 14px; }
+
+  /* Tabs */
+  nav { display: flex; gap: 6px; margin-bottom: 22px; flex-wrap: wrap; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+  nav button { background: var(--card); border: 1px solid var(--border); color: var(--muted); font-size: 14px; font-weight: 600; padding: 9px 16px; border-radius: 10px; cursor: pointer; transition: all .15s; }
+  nav button:hover { color: var(--text); }
+  nav button.on { background: rgba(110,168,254,.14); border-color: rgba(110,168,254,.5); color: var(--accent); }
+  nav button .n { display: inline-block; margin-left: 6px; background: var(--accent); color: #0b0d12; border-radius: 99px; font-size: 11px; padding: 1px 7px; }
+  .tab { display: none; }
+  .tab.on { display: block; }
+
+  .briefing { background: linear-gradient(135deg, #16203a, #131828); border: 1px solid var(--border); border-radius: 16px; padding: 24px 28px; margin-bottom: 20px; }
+  .briefing h2 { font-size: 18px; margin-bottom: 8px; line-height: 1.4; }
+  .briefing p { color: var(--muted); line-height: 1.55; font-size: 14.5px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 22px; }
+  .card h3 { font-size: 15px; display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .stamp { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+  .kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+  .kpi { background: var(--card2); border-radius: 10px; padding: 10px 12px; }
+  .kpi .label { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .kpi .value { font-size: 20px; font-weight: 700; margin-top: 2px; }
+  .kpi .delta { font-size: 12px; margin-left: 6px; font-weight: 600; }
+  .up { color: var(--green); } .down { color: var(--red); }
+  .section-label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 14px 0 8px; }
+  ul.plain { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+  ul.plain li { font-size: 13.5px; line-height: 1.5; color: #c9d1e3; background: var(--card2); border-radius: 8px; padding: 8px 12px; }
+  ul.plain li.rec { border-left: 3px solid var(--accent); }
+  .post { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; background: var(--card2); border-radius: 8px; padding: 8px 12px; }
+  .post .m { color: var(--muted); white-space: nowrap; }
+  .posts { display: flex; flex-direction: column; gap: 6px; }
+  .chart { background: var(--card2); border-radius: 10px; padding: 12px 12px 6px; margin-bottom: 4px; }
+  .chart svg { width: 100%; height: 72px; display: block; }
+  .chart .cl { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 6px; display: flex; justify-content: space-between; }
+  .chart .cl b { color: var(--text); }
+
+  /* To-dos */
+  .todo { display: flex; gap: 12px; align-items: flex-start; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; transition: opacity .2s; }
+  .todo.done { opacity: .45; }
+  .todo.done .t { text-decoration: line-through; }
+  .todo input { margin-top: 3px; width: 17px; height: 17px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+  .todo .t { font-size: 14.5px; font-weight: 600; line-height: 1.4; }
+  .todo .why { font-size: 12.5px; color: var(--muted); margin-top: 3px; line-height: 1.45; }
+  .tag { display: inline-block; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; border-radius: 6px; padding: 2px 7px; margin-right: 6px; vertical-align: 1px; }
+  .tag.film { background: rgba(248,113,113,.15); color: var(--red); }
+  .tag.write { background: rgba(110,168,254,.15); color: var(--accent); }
+  .tag.post { background: rgba(74,222,128,.13); color: var(--green); }
+  .tag.admin { background: rgba(251,191,36,.13); color: var(--amber); }
+  .tag.platform { background: var(--card2); color: var(--muted); }
+  .progress { height: 6px; background: var(--card2); border-radius: 99px; overflow: hidden; margin: 4px 0 18px; }
+  .progress div { height: 100%; background: linear-gradient(90deg, var(--accent), var(--green)); border-radius: 99px; transition: width .3s; }
+  .progress-label { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+
+  /* Agents */
+  .agent { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
+  .agent h3 { font-size: 15px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .agent p { font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .agent .meta { margin-top: 12px; font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
+  .agent .blocked { margin-top: 10px; font-size: 12.5px; color: var(--amber); background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.25); border-radius: 8px; padding: 8px 10px; line-height: 1.45; }
+  .badge { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; border-radius: 99px; padding: 3px 9px; }
+  .badge.active { background: rgba(74,222,128,.15); color: var(--green); }
+  .badge.semi-manual { background: rgba(110,168,254,.15); color: var(--accent); }
+  .badge.waiting { background: rgba(251,191,36,.15); color: var(--amber); }
+  .badge.planned { background: rgba(139,147,167,.15); color: var(--muted); }
+
+  /* Pipeline */
+  .recipe { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 22px; margin-bottom: 22px; }
+  .recipe-flow { display: flex; align-items: stretch; gap: 14px; flex-wrap: wrap; margin-top: 14px; }
+  .recipe-src { background: linear-gradient(135deg, #2a1a3a, #1a1428); border: 1px solid rgba(192,132,252,.4); border-radius: 12px; padding: 16px; min-width: 180px; display: flex; flex-direction: column; justify-content: center; }
+  .recipe-src .big { font-size: 15px; font-weight: 700; color: var(--purple); }
+  .recipe-src .sm { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .arrow { align-self: center; color: var(--muted); font-size: 22px; }
+  .recipe-groups { flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; min-width: 300px; }
+  .rgroup { background: var(--card2); border-radius: 10px; padding: 12px 14px; }
+  .rgroup .g { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); margin-bottom: 8px; }
+  .rgroup ul { list-style: none; }
+  .rgroup li { font-size: 12.5px; color: #c9d1e3; padding: 3px 0; line-height: 1.4; }
+  .rgroup li::before { content: "· "; color: var(--muted); }
+  .kanban { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+  .kcol { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px; min-height: 120px; }
+  .kcol h4 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 12px; }
+  .kitem { background: var(--card2); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+  .kitem .t { font-size: 13.5px; font-weight: 600; line-height: 1.4; }
+  .kitem .s { font-size: 11.5px; color: var(--purple); margin-top: 3px; }
+  .kitem .n { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.45; }
+  .empty { color: var(--muted); font-size: 13px; padding: 8px 2px; }
+
+  .callout { background: rgba(251,191,36,.07); border: 1px solid rgba(251,191,36,.3); border-radius: 14px; padding: 18px 22px; font-size: 14px; line-height: 1.55; margin-bottom: 20px; }
+  .callout b { color: var(--amber); }
+  footer { margin-top: 36px; color: var(--muted); font-size: 12.5px; text-align: center; }
+  code { background: var(--card2); border-radius: 5px; padding: 1px 6px; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🧠 Content <span>HQ</span></h1>
+    <div class="date" id="today"></div>
+  </header>
+
+  <nav id="nav"></nav>
+
+  <div class="tab" id="tab-today">
+    <div class="briefing" id="briefing"></div>
+    <div class="progress-label" id="todo-progress-label"></div>
+    <div class="progress"><div id="todo-progress" style="width:0%"></div></div>
+    <div id="todos"></div>
+  </div>
+
+  <div class="tab" id="tab-platforms">
+    <div class="grid">
+      <div class="card" id="card-instagram"></div>
+      <div class="card" id="card-x"></div>
+      <div class="card" id="card-youtube"></div>
+    </div>
+  </div>
+
+  <div class="tab" id="tab-agency">
+    <div class="grid" id="agents"></div>
+  </div>
+
+  <div class="tab" id="tab-pipeline">
+    <div class="recipe">
+      <h3>🔁 The Recipe — film once, publish everywhere</h3>
+      <div class="stamp">Every long-form video that enters the pipeline gets turned into all of this. Published to: X, YouTube Shorts, Threads, Instagram (Reels · Stories · Carousels), LinkedIn, TikTok, Facebook.</div>
+      <div class="recipe-flow">
+        <div class="recipe-src"><div class="big">🎥 1 YouTube video</div><div class="sm">(or standalone IG video)</div><div class="sm">→ transcript → AI team</div></div>
+        <div class="arrow">➜</div>
+        <div class="recipe-groups" id="recipe-groups"></div>
+      </div>
+    </div>
+    <div class="kanban" id="kanban"></div>
+  </div>
+
+  <div class="tab" id="tab-competitors">
+    <div id="competitors"></div>
+  </div>
+
+  <footer>Data lives in <code>Content HQ/data/</code> · History in <code>knowledge-base/</code> · Agents run daily via Cowork scheduled task</footer>
+</div>
+
+<script>
+const HQ = window.HQ || {};
+const fmt = n => n == null ? "—" : (typeof n === "number" && n >= 1000 ? Intl.NumberFormat("en", {notation:"compact", maximumFractionDigits:1}).format(n) : n);
+const deltaHtml = d => {
+  if (d == null || d === 0) return "";
+  const up = (typeof d === "number" ? d > 0 : !String(d).startsWith("-"));
+  return `<span class="delta ${up ? "up" : "down"}">${up ? "▲" : "▼"} ${String(d).replace("-","")}</span>`;
+};
+const stamp = t => t ? "Updated " + t : "Not yet updated";
+document.getElementById("today").textContent = new Date().toLocaleDateString("en-US", {weekday:"long", year:"numeric", month:"long", day:"numeric"});
+
+/* ---------- Tabs ---------- */
+const openTodos = ((HQ.todos||{}).items||[]).filter(t => !isDone(t.id)).length;
+const TABS = [
+  { id: "today", label: "🌅 Today", n: openTodos || null },
+  { id: "platforms", label: "📊 Platforms" },
+  { id: "agency", label: "🏭 Agency" },
+  { id: "pipeline", label: "🔁 Repurposing" },
+  { id: "competitors", label: "🕵️ Competitors" }
+];
+const nav = document.getElementById("nav");
+TABS.forEach(t => {
+  const b = document.createElement("button");
+  b.innerHTML = t.label + (t.n ? `<span class="n">${t.n}</span>` : "");
+  b.onclick = () => showTab(t.id);
+  b.id = "btn-" + t.id;
+  nav.appendChild(b);
+});
+function showTab(id){
+  TABS.forEach(t => {
+    document.getElementById("tab-" + t.id).classList.toggle("on", t.id === id);
+    document.getElementById("btn-" + t.id).classList.toggle("on", t.id === id);
+  });
+  store("hq-tab", id);
+}
+
+/* ---------- Local persistence (browser remembers your checkmarks) ---------- */
+function store(k, v){ try { localStorage.setItem(k, v); } catch(e){} }
+function load(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
+function isDone(id){ return load("todo-" + id) === "1"; }
+
+/* ---------- Briefing ---------- */
+(function(){
+  const b = HQ.briefing || {};
+  document.getElementById("briefing").innerHTML = `
+    <h2>📋 ${b.headline || "Daily Briefing"}</h2>
+    <p>${b.summary || ""}</p>
+    <div class="stamp" style="margin-top:10px">${stamp(b.updatedAt)}</div>`;
+})();
+
+/* ---------- To-dos ---------- */
+function renderTodos(){
+  const data = HQ.todos || { items: [] };
+  const items = (data.items || []).slice().sort((a,b) => (a.priority||99) - (b.priority||99));
+  const box = document.getElementById("todos");
+  box.innerHTML = items.length ? "" : `<div class="empty">No to-dos yet — the CEO Agent writes these each morning.</div>`;
+  items.forEach(t => {
+    const done = isDone(t.id);
+    const el = document.createElement("div");
+    el.className = "todo" + (done ? " done" : "");
+    el.innerHTML = `
+      <input type="checkbox" ${done ? "checked" : ""}>
+      <div>
+        <div class="t"><span class="tag ${t.type}">${t.type}</span><span class="tag platform">${t.platform}</span>${t.title}</div>
+        ${t.why ? `<div class="why">💭 ${t.why}</div>` : ""}
+      </div>`;
+    el.querySelector("input").onchange = e => {
+      store("todo-" + t.id, e.target.checked ? "1" : "0");
+      renderTodos();
+    };
+    box.appendChild(el);
+  });
+  const doneCount = items.filter(t => isDone(t.id)).length;
+  const pct = items.length ? Math.round(doneCount / items.length * 100) : 0;
+  document.getElementById("todo-progress").style.width = pct + "%";
+  document.getElementById("todo-progress-label").textContent =
+    `✅ ${doneCount} / ${items.length} done today (${pct}%) · list refreshed ${data.updatedAt || "—"}`;
+}
+renderTodos();
+
+/* ---------- Platform cards ---------- */
+function kpiBlock(kpis, labels){
+  const d = kpis.deltas || {};
+  return `<div class="kpis">` + Object.entries(labels).map(([k, label]) =>
+    `<div class="kpi"><div class="label">${label}</div><div class="value">${fmt(kpis[k])}${deltaHtml(d[k])}</div></div>`
+  ).join("") + `</div>`;
+}
+function listBlock(title, items, cls=""){
+  if (!items || !items.length) return "";
+  return `<div class="section-label">${title}</div><ul class="plain">${items.map(i=>`<li class="${cls}">${i}</li>`).join("")}</ul>`;
+}
+function postsBlock(title, posts){
+  if (!posts || !posts.length) return "";
+  return `<div class="section-label">${title}</div><div class="posts">${posts.map(p=>
+    `<div class="post"><span>${p.title || p.text || ""}</span><span class="m">${p.metric || ""}</span></div>`).join("")}</div>`;
+}
+function chartBlock(series){
+  if (!series || !(series.points||[]).length) return "";
+  const pts = series.points, W = 320, H = 60, P = 3;
+  const vals = pts.map(p => p.v);
+  const max = Math.max(...vals), min = Math.min(...vals);
+  const x = i => P + i * (W - 2*P) / Math.max(pts.length - 1, 1);
+  const y = v => max === min ? H/2 : P + (H - 2*P) * (1 - (v - min) / (max - min));
+  const line = pts.map((p,i) => `${x(i).toFixed(1)},${y(p.v).toFixed(1)}`).join(" ");
+  const area = `${P},${H} ${line} ${(W-P)},${H}`;
+  const peak = pts.reduce((a,b) => b.v > a.v ? b : a);
+  const pi = pts.indexOf(peak);
+  return `<div class="chart">
+    <div class="cl"><span>📈 ${series.label}</span><span>peak <b>${fmt(peak.v)}</b> (${peak.d})</span></div>
+    <svg viewBox="0 0 ${W} ${H+6}" preserveAspectRatio="none">
+      <polygon points="${area}" fill="rgba(110,168,254,.12)"/>
+      <polyline points="${line}" fill="none" stroke="#6ea8fe" stroke-width="1.8" stroke-linejoin="round"/>
+      <circle cx="${x(pi).toFixed(1)}" cy="${y(peak.v).toFixed(1)}" r="3" fill="#4ade80"/>
+      <circle cx="${x(pts.length-1).toFixed(1)}" cy="${y(pts[pts.length-1].v).toFixed(1)}" r="2.5" fill="#e8ecf4"/>
+    </svg></div>`;
+}
+function renderPlatform(id, emoji, name, d, kpiLabels, topKey, topTitle){
+  if (!d) return;
+  document.getElementById(id).innerHTML = `
+    <h3>${emoji} ${name}</h3>
+    <div class="stamp">${stamp(d.updatedAt)}</div>
+    ${kpiBlock(d.kpis || {}, kpiLabels)}
+    ${chartBlock(d.series)}
+    ${postsBlock(topTitle, d[topKey])}
+    ${listBlock("Insights", d.insights)}
+    ${listBlock("Do next", d.recommendations, "rec")}`;
+}
+renderPlatform("card-instagram", "📸", "Instagram", HQ.instagram,
+  {followers:"Followers", reach7d:"Reach (7d)", engaged7d:"Engaged (7d)", profileVisits7d:"Profile visits (7d)"},
+  "topPosts", "Top posts");
+renderPlatform("card-x", "𝕏", "X / Twitter", HQ.x,
+  {followers:"Followers", impressions7d:"Impressions (7d)", engagementRate7d:"Eng. (7d)", profileVisits7d:"Profile visits (7d)"},
+  "topPosts", "Top posts");
+renderPlatform("card-youtube", "▶️", "YouTube", HQ.youtube,
+  {subscribers:"Subscribers", views7d:"Views (7d)", watchTime7d:"Watch time (7d)", ctr7d:"CTR (7d)"},
+  "topVideos", "Top videos");
+(function(){
+  const yt = HQ.youtube || {};
+  if ((yt.nicheTrends||[]).length){
+    document.getElementById("card-youtube").innerHTML += postsBlock("🔥 Niche trends", yt.nicheTrends.map(t=>({title:`${t.title} — ${t.channel}`, metric: t.views})));
+  }
+})();
+
+/* ---------- Agency ---------- */
+(function(){
+  const box = document.getElementById("agents");
+  (HQ.agents || []).forEach(a => {
+    const el = document.createElement("div");
+    el.className = "agent";
+    el.innerHTML = `
+      <h3>${a.emoji} ${a.name} <span class="badge ${a.status}">${a.status.replace("-", " ")}</span></h3>
+      <p>${a.role}</p>
+      ${a.blocked ? `<div class="blocked">⏸ ${a.blocked}</div>` : ""}
+      <div class="meta">
+        <span>🗓 ${a.schedule || "—"}</span>
+        ${a.lastRun ? `<span>✅ Last run: ${a.lastRun}</span>` : ""}
+        <span>📁 Writes to: ${(a.outputs||[]).map(o=>`<code>${o}</code>`).join(" ")}</span>
+      </div>`;
+    box.appendChild(el);
+  });
+})();
+
+/* ---------- Repurposing ---------- */
+(function(){
+  const groups = document.getElementById("recipe-groups");
+  (HQ.repurposingRecipe || []).forEach(g => {
+    const el = document.createElement("div");
+    el.className = "rgroup";
+    el.innerHTML = `<div class="g">${g.group}</div><ul>${g.items.map(i=>`<li>${i}</li>`).join("")}</ul>`;
+    groups.appendChild(el);
+  });
+
+  const stages = [
+    { id: "queue", label: "📥 Queue" },
+    { id: "production", label: "✂️ In production" },
+    { id: "ready", label: "📦 Ready to publish" },
+    { id: "published", label: "🚀 Published" }
+  ];
+  const items = (HQ.pipeline || {}).items || [];
+  const kb = document.getElementById("kanban");
+  stages.forEach(s => {
+    const col = document.createElement("div");
+    col.className = "kcol";
+    const inStage = items.filter(i => i.stage === s.id);
+    col.innerHTML = `<h4>${s.label} (${inStage.length})</h4>` +
+      (inStage.length ? inStage.map(i => `
+        <div class="kitem">
+          <div class="t">${i.title}</div>
+          <div class="s">📎 ${i.source}</div>
+          ${i.note ? `<div class="n">${i.note}</div>` : ""}
+          ${(i.derivatives||[]).length ? `<div class="n">✅ ${i.derivatives.length} assets created</div>` : ""}
+        </div>`).join("") : `<div class="empty">Empty</div>`);
+    kb.appendChild(col);
+  });
+})();
+
+/* ---------- Competitors ---------- */
+(function(){
+  const c = HQ.competitors || {};
+  const box = document.getElementById("competitors");
+  if (!(c.creators||[]).length){
+    box.innerHTML = `
+      <div class="callout">
+        <b>⏸ The Competitor Research Agent is waiting on you.</b><br><br>
+        Give Claude a list of <b>3–8 creators you admire</b> (name + handle + platform). Once you do, this tab fills up daily with their outlier videos and posts, why they worked, and stealable angles for your own content.<br><br>
+        Just message Claude: <i>"My creators list: ..."</i>
+      </div>
+      <div class="grid">
+        <div class="card"><h3>🎯 What this agent will track</h3>
+          <ul class="plain" style="margin-top:10px">
+            <li>Outlier detection — videos/posts performing 3x+ above a creator's median</li>
+            <li>Hook &amp; title patterns behind their winners</li>
+            <li>Formats &amp; posting frequency across platforms</li>
+            <li>Trending topics in the CRO / ecom / agency niche</li>
+            <li>Stealable angles adapted to your voice and pillars</li>
+          </ul>
+        </div>
+      </div>`;
+    return;
+  }
+  box.innerHTML = `
+    <div class="grid">
+      <div class="card"><h3>👥 Tracked creators</h3><div class="stamp">${stamp(c.updatedAt)}</div>
+        <div class="posts">${c.creators.map(cr=>`<div class="post"><span>${cr.name} <span style="color:var(--muted)">${cr.handle||""}</span></span><span class="m">${cr.platform||""}</span></div>`).join("")}</div></div>
+      <div class="card"><h3>💥 Recent outliers</h3>
+        <div class="posts">${(c.outliers||[]).map(o=>`<div class="post"><span><b>${o.creator}</b>: ${o.title}<br><span style="color:var(--muted);font-size:12px">${o.stealableAngle||o.whyItWorked||""}</span></span><span class="m">${o.metric||""}</span></div>`).join("") || '<div class="empty">No outliers logged yet.</div>'}</div>
+        ${listBlock("Insights", c.insights)}</div>
+    </div>`;
+})();
+
+/* ---------- Init ---------- */
+showTab(load("hq-tab") || "today");
+</script>
+</body>
+</html>
