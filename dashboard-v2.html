@@ -183,6 +183,11 @@
   #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--card3); border: 1px solid var(--border); color: var(--text); border-radius: 12px; padding: 11px 20px; font-size: 13.5px; display: none; z-index: 99; box-shadow: 0 8px 30px rgba(0,0,0,.5); }
   footer { margin-top: 36px; color: var(--muted); font-size: 12.5px; text-align: center; }
   code { background: var(--card2); border-radius: 5px; padding: 1px 6px; font-size: 12px; }
+  .docbody { margin-top: 14px; }
+  .docbody .dh { font-size: 14px; margin: 18px 0 8px; color: var(--accent); }
+  .docbody .dp { color: #c9d1e3; font-size: 13.5px; line-height: 1.65; margin-bottom: 8px; }
+  .docbody .dl { margin: 6px 0 6px 20px; color: #c9d1e3; font-size: 13.5px; line-height: 1.65; }
+  .docbody .dl li { margin-bottom: 7px; }
   a { color: var(--accent); }
 </style>
 </head>
@@ -190,7 +195,9 @@
 <div class="wrap">
   <header>
     <h1>🧠 Content <span>HQ</span> <span style="font-size:13px;color:var(--muted);font-weight:600">v2</span></h1>
-    <div style="display:flex;gap:16px;align-items:baseline">
+    <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap">
+      <button class="btn ghost sm" onclick="openDoc('howto')">📖 How to use</button>
+      <button class="btn ghost sm" onclick="openDoc('agent')">🤖 Pipeline agent</button>
       <div class="whoami" id="whoami"></div>
       <div class="date" id="today"></div>
     </div>
@@ -473,6 +480,59 @@ let CURRENT = null;
 function closeModal(){ document.getElementById("overlay").classList.remove("on"); CURRENT = null; }
 document.getElementById("overlay").addEventListener("click", e => { if (e.target.id === "overlay") closeModal(); });
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+
+/* ---------- educational docs ---------- */
+const DOCS = {
+  howto: {
+    title: "📖 How to use Content HQ",
+    html: `
+      <p class="dp">Content HQ is your daily command center. Data agents refresh the numbers every morning at 7:00 AM; you and the team run the content pipeline from here.</p>
+      <h4 class="dh">The tabs</h4>
+      <ul class="dl">
+        <li><b>📋 Today</b> — your daily briefing + checklist. Each todo can carry reference chips (a post of yours or a competitor's that proves the advice works). Checkmarks are personal to your browser.</li>
+        <li><b>🎬 Studio</b> — the live pipeline. Drag cards between stages (Idea → Approved → Scripting → Filming → Editing → Ready → Published). Click a card to approve 👍, request changes ✏️, reject 👎, edit the hook/script, or leave a timestamped comment. "＋ Add content" creates a new idea.</li>
+        <li><b>📚 Library</b> — the swipe file: your winners + competitor outliers with thumbnails, metrics, why it worked, and a stealable angle. "＋ Make idea from this" spawns a pre-filled pipeline card linked to the reference.</li>
+        <li><b>📊 Platforms / 🏢 Agency / 🔭 Competitors</b> — read-only analytics written by the daily agents.</li>
+      </ul>
+      <h4 class="dh">One-time setup (per person)</h4>
+      <ol class="dl">
+        <li>Open the Studio tab — it will ask for an Airtable token.</li>
+        <li>Create one at <a href="https://airtable.com/create/tokens" target="_blank">airtable.com/create/tokens</a> with scopes <code>data.records:read</code> + <code>data.records:write</code> on the <b>Content HQ</b> base.</li>
+        <li>Paste it once. It is stored only in YOUR browser — never in the repo — so this public page stays safe.</li>
+        <li>Pick your name in the header so approvals and comments are attributed to you.</li>
+      </ol>
+      <h4 class="dh">Where the data lives</h4>
+      <p class="dp">The pipeline and swipe file live in the Airtable base <b>Content HQ</b> (tables <i>Content Pipeline</i> and <i>Reference Library</i>). Edit there or here — both stay in sync. Analytics live in <code>data/*.js</code>, committed by the daily run.</p>
+      <h4 class="dh">Media references</h4>
+      <p class="dp">Paste any YouTube link into a card's Reference Links and the thumbnail appears automatically. For Instagram/X screenshots, attach images to the record's Reference Media field in Airtable.</p>`
+  },
+  agent: {
+    title: "🤖 The Content Pipeline Agent",
+    html: `
+      <p class="dp">This is the AI teammate that keeps the pipeline full so nobody starts from a blank page. It runs after the daily data agents and follows the playbook in <code>agents/content-pipeline-agent.md</code>.</p>
+      <h4 class="dh">What it does every day</h4>
+      <ol class="dl">
+        <li><b>Feeds the Library</b> — every new outlier the competitor/YouTube/IG agents find becomes a Reference Library record with the verbatim metric, 2-3 sentences on why it worked, and one concrete stealable angle.</li>
+        <li><b>Proposes ideas</b> — strong insights become pipeline cards at <i>💡 Idea / ⏳ Pending Review</i>, with a written hook, a data-backed "why", and linked references. Your job is just to approve, edit, or reject.</li>
+        <li><b>Never overwrites humans</b> — it only appends to the Feedback Log (<code>[date] Agent: note</code>) and never touches the stage or approval of anything a person has edited.</li>
+        <li><b>Escalates</b> — anything stuck in ⏳ Pending Review for 7+ days gets flagged in the morning briefing.</li>
+        <li><b>Closes the loop</b> — when a card hits 🚀 Published it asks for the published URL so the data agents can track its real performance.</li>
+      </ol>
+      <h4 class="dh">The rule that matters</h4>
+      <p class="dp"><b>No naked advice.</b> Every idea and every todo must carry at least one reference — a post of yours or a competitor's with a real metric — proving the pattern works. If there's no receipt, it doesn't ship.</p>
+      <h4 class="dh">Your workflow</h4>
+      <p class="dp">Morning: open Today, scan the briefing, knock out the checklist. Then open Studio, review anything ⏳ Pending — approve it into the pipeline or reject it with a comment explaining why (the agent learns from your feedback log). That's it; the agents handle the rest.</p>`
+  }
+};
+function openDoc(which){
+  const d = DOCS[which]; if (!d) return;
+  CURRENT = null;
+  document.getElementById("modal").innerHTML = `
+    <div class="mhead"><h2 style="font-size:19px">${d.title}</h2></div>
+    <div class="docbody">${d.html}</div>
+    <div style="display:flex;justify-content:flex-end;margin-top:18px"><button class="btn ghost" onclick="closeModal()">Close</button></div>`;
+  document.getElementById("overlay").classList.add("on");
+}
 
 function openCard(id){
   const rec = PIPE.find(r => r.id === id);
