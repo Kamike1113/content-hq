@@ -245,6 +245,18 @@
     <div id="library-body"></div>
   </div>
 
+  <div class="tab" id="tab-repurpose">
+    <div class="toolbar">
+      <input type="text" id="r-search" placeholder="🔎 Search assets…">
+      <select id="r-format"><option value="">All formats</option></select>
+      <select id="r-status"><option value="">All statuses</option></select>
+      <button class="btn ghost sm" id="btn-rep-refresh">↻ Refresh</button>
+      <span class="stamp" id="rep-stamp" style="margin:0"></span>
+    </div>
+    <div class="callout" style="margin-bottom:16px">♻️ <b>How it works:</b> when a post hits 🚀 Published in the Studio, open its card and press <b>“♻️ Repurpose this post”</b> — that queues every format here as 🧠 To Generate. Then tell Claude <code>repurpose [post title]</code> and the AI drafts everything — newsletter, LinkedIn post, X thread &amp; short post, IG carousel slide-by-slide text, IG caption, headline options — using the Reference Library + copywriting frameworks. You review, tweak, approve, copy, post.</div>
+    <div id="repurpose-body"></div>
+  </div>
+
   <div class="tab" id="tab-platforms">
     <div class="grid">
       <div class="card" id="card-instagram"></div>
@@ -317,7 +329,7 @@ renderWho();
 /* ================= Airtable client ================= */
 const AT = {
   baseId: "app55KhrinUlp0Zwv",
-  tables: { pipeline: "Content Pipeline", library: "Reference Library" },
+  tables: { pipeline: "Content Pipeline", library: "Reference Library", repurpose: "Repurposing" },
   token(){ return load("hq-at-token") || ""; },
   async req(path, opts = {}){
     const res = await fetch(`https://api.airtable.com/v0/${this.baseId}/${path}`, {
@@ -344,10 +356,15 @@ const AT = {
 
 const STAGES = ["💡 Idea","✅ Approved","✍️ Scripting","🎬 Filming","✂️ Editing","📦 Ready to Publish","🚀 Published","❌ Rejected"];
 const APPR = { pending: "⏳ Pending Review", ok: "👍 Approved", changes: "✏️ Changes Requested", no: "👎 Rejected" };
+const REP_STATUSES = ["🧠 To Generate","🤖 Drafted by AI","👀 In Review","✅ Approved","🚀 Published","❌ Rejected"];
+const REP_FORMATS = ["✉️ Newsletter","💼 LinkedIn Post","💼 LinkedIn Carousel","🧵 X Thread","𝕏 X Post (short)","📸 IG Carousel (slide-by-slide)","📸 IG Caption","🎬 Short-form Script","📝 Blog / Long-form","💡 Headline Options"];
+const REP_DEFAULT_QUEUE = ["✉️ Newsletter","💼 LinkedIn Post","🧵 X Thread","𝕏 X Post (short)","📸 IG Carousel (slide-by-slide)","📸 IG Caption","💡 Headline Options"];
 let PIPE = [];   // pipeline records
 let LIB = [];    // library records
+let REPO = [];   // repurposing records
 let LIB_BY_ID = {};
 let loaded = false;
+let DIRTY = false; // unsaved edits in the open modal
 
 function setupPanel(target, what){
   document.getElementById(target).innerHTML = `
@@ -375,18 +392,23 @@ function saveToken(){
 
 async function loadStudio(force){
   const body = document.getElementById("studio-body");
-  const lib = document.getElementById("library-body");
-  if (!AT.token()){ setupPanel("studio-body", "the Content Studio"); setupPanel("library-body", "the Reference Library"); return; }
-  if (loaded && !force){ renderBoard(); renderLibrary(); return; }
+  if (!AT.token()){ setupPanel("studio-body", "the Content Studio"); setupPanel("library-body", "the Reference Library"); setupPanel("repurpose-body", "the Repurposing engine"); return; }
+  if (loaded && !force){ renderBoard(); renderLibrary(); renderRepurpose(); return; }
   body.innerHTML = `<div class="empty">Loading pipeline from Airtable…</div>`;
   try {
-    const [p, l] = await Promise.all([AT.list(AT.tables.pipeline), AT.list(AT.tables.library)]);
-    PIPE = p; LIB = l; LIB_BY_ID = {}; l.forEach(r => LIB_BY_ID[r.id] = r);
+    const [p, l, rp] = await Promise.all([
+      AT.list(AT.tables.pipeline),
+      AT.list(AT.tables.library),
+      AT.list(AT.tables.repurpose).catch(() => []) // table may not exist yet in a fork
+    ]);
+    PIPE = p; LIB = l; REPO = rp; LIB_BY_ID = {}; l.forEach(r => LIB_BY_ID[r.id] = r);
     loaded = true;
-    document.getElementById("studio-stamp").textContent = "Live · " + PIPE.length + " items · synced " + new Date().toLocaleTimeString();
-    renderBoard(); renderLibrary();
+    const ts = new Date().toLocaleTimeString();
+    document.getElementById("studio-stamp").textContent = "Live · " + PIPE.length + " items · synced " + ts;
+    document.getElementById("rep-stamp").textContent = "Live · " + REPO.length + " assets · synced " + ts;
+    renderBoard(); renderLibrary(); renderRepurpose();
   } catch(e){
-    if (e.message === "AUTH"){ store("hq-at-token", ""); setupPanel("studio-body", "the Content Studio"); setupPanel("library-body", "the Reference Library"); toast("Token rejected — reconnect"); }
+    if (e.message === "AUTH"){ store("hq-at-token", ""); setupPanel("studio-body", "the Content Studio"); setupPanel("library-body", "the Reference Library"); setupPanel("repurpose-body", "the Repurposing engine"); toast("Token rejected — reconnect"); }
     else { body.innerHTML = `<div class="callout"><b>Couldn't reach Airtable.</b><br>${esc(e.message)}</div>`; }
   }
 }
@@ -402,7 +424,7 @@ function refChip(rec){
   const icon = PLATFORM_ICON[f["Platform"]] || "🔗";
   return `<a class="refchip" href="${esc(f["URL"] || "#")}" target="_blank" title="${esc(f["Why It Worked"] || "")}">
     ${img ? `<img src="${esc(img)}" loading="lazy">` : `<span class="ph">${icon}</span>`}
-    <span><span class="rl">${esc(f["Title"] || "Untitled")}</span><span class="rm">${esc(f["Creator"] || "")}${f["Metric"] ? " · " + esc(f["Metric"]) : ""}</span></span>
+    <span><span class="rl">${esc(f["Title"] || "Untitled")}</span><span class="rm">${esc(f["Creator"] || "")}${f["Metric"] ? " · " + esc(f["Metric"]) : ""}${f["Exact Source"] ? " · 📍 " + esc(f["Exact Source"]) : ""}</span></span>
   </a>`;
 }
 function plainRefChip(r){ /* for todos.js refs: {label,url,metric,img} */
@@ -423,7 +445,7 @@ function matchesFilters(f){
   const pf = document.getElementById("f-platform").value;
   const pr = document.getElementById("f-priority").value;
   const ap = document.getElementById("f-approval").value;
-  if (s && !((f["Title"]||"") + " " + (f["Hook / Angle"]||"") + " " + (f["Why / Data"]||"")).toLowerCase().includes(s)) return false;
+  if (s && !((f["Title"]||"") + " " + (f["Hook / Angle"]||"") + " " + (f["Why / Data"]||"") + " " + (f["Script / Draft"]||"")).toLowerCase().includes(s)) return false;
   if (pf && !(f["Platforms"]||[]).includes(pf)) return false;
   if (pr && f["Priority"] !== pr) return false;
   if (ap && f["Approval"] !== ap) return false;
@@ -432,9 +454,11 @@ function matchesFilters(f){
 function renderBoard(){
   const body = document.getElementById("studio-body");
   const cols = STAGES.map(stage => {
-    const items = PIPE.filter(r => (r.fields["Stage"] || "💡 Idea") === stage && matchesFilters(r.fields));
+    let items = PIPE.filter(r => (r.fields["Stage"] || "💡 Idea") === stage && matchesFilters(r.fields));
+    if (stage === "🚀 Published") items = items.slice().sort((a,b) => (b.fields["Publish Date"]||"").localeCompare(a.fields["Publish Date"]||""));
     const cards = items.map(r => {
       const f = r.fields;
+      const repCount = (f["Repurposing"]||[]).length;
       const thumbs = (f["References"] || []).map(id => LIB_BY_ID[id]).filter(Boolean).map(refMediaThumb).filter(Boolean).slice(0, 3);
       const att = (f["Reference Media"] || []).map(a => (a.thumbnails && (a.thumbnails.large||a.thumbnails.small)||{}).url || a.url).slice(0, 3 - thumbs.length);
       const all = thumbs.concat(att);
@@ -445,6 +469,8 @@ function renderBoard(){
           ${apprPill(f["Approval"])}
           ${(f["Platforms"]||[]).map(p => `<span class="pill">${PLATFORM_ICON[p]||""} ${esc(p)}</span>`).join("")}
           ${f["Assigned To"] ? `<span class="pill">👤 ${esc(f["Assigned To"])}</span>` : ""}
+          ${f["Publish Date"] ? `<span class="pill">📅 ${esc(f["Publish Date"])}</span>` : ""}
+          ${repCount ? `<span class="pill" style="background:rgba(45,212,191,.15);color:var(--teal)">♻️ ${repCount}</span>` : ""}
           ${(f["Feedback Log"]||"").trim() ? `<span class="pill">💬 ${(f["Feedback Log"].match(/\n/g)||[]).length + 1}</span>` : ""}
         </div>
         ${all.length ? `<div class="thumbs">${all.map(u => `<img src="${esc(u)}" loading="lazy">`).join("")}</div>` : ""}
@@ -456,11 +482,11 @@ function renderBoard(){
   wireDnD();
 }
 function wireDnD(){
-  document.querySelectorAll(".kitem").forEach(el => {
+  document.querySelectorAll("#studio-body .kitem").forEach(el => {
     el.addEventListener("dragstart", e => { e.dataTransfer.setData("text/plain", el.dataset.id); el.classList.add("dragging"); });
     el.addEventListener("dragend", () => el.classList.remove("dragging"));
   });
-  document.querySelectorAll(".kcol").forEach(col => {
+  document.querySelectorAll("#studio-body .kcol").forEach(col => {
     col.addEventListener("dragover", e => { e.preventDefault(); col.classList.add("dragover"); });
     col.addEventListener("dragleave", () => col.classList.remove("dragover"));
     col.addEventListener("drop", async e => {
@@ -477,10 +503,29 @@ function wireDnD(){
 }
 
 /* ---------- card modal ---------- */
-let CURRENT = null;
-function closeModal(){ document.getElementById("overlay").classList.remove("on"); CURRENT = null; }
+let CURRENT = null;      // open pipeline record id
+let REP_CURRENT = null;  // open repurposing record id
+function closeModal(force){
+  if (!force && DIRTY && !confirm("You have unsaved edits — discard them?")) return;
+  DIRTY = false;
+  document.getElementById("overlay").classList.remove("on"); CURRENT = null; REP_CURRENT = null;
+}
 document.getElementById("overlay").addEventListener("click", e => { if (e.target.id === "overlay") closeModal(); });
-document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") closeModal();
+  if ((e.metaKey || e.ctrlKey) && e.key === "Enter"){ // ⌘/Ctrl+Enter = save
+    if (CURRENT) saveCard();
+    else if (REP_CURRENT) saveRep();
+  }
+});
+/* mark modal dirty whenever the user types in any field */
+function wireDirty(){
+  DIRTY = false;
+  document.querySelectorAll("#modal input[type=text], #modal textarea").forEach(el => {
+    if (el.id === "m-comment" || el.id === "r-comment") return; // comments save instantly
+    el.addEventListener("input", () => DIRTY = true);
+  });
+}
 
 /* ---------- educational docs ---------- */
 const DOCS = {
@@ -492,7 +537,8 @@ const DOCS = {
       <ul class="dl">
         <li><b>📋 Today</b> — your daily briefing + checklist. Each todo can carry reference chips (a post of yours or a competitor's that proves the advice works). Checkmarks are personal to your browser.</li>
         <li><b>🎬 Studio</b> — the live pipeline. Drag cards between stages (Idea → Approved → Scripting → Filming → Editing → Ready → Published). Click a card to approve 👍, request changes ✏️, reject 👎, edit the hook/script, or leave a timestamped comment. "＋ Add content" creates a new idea.</li>
-        <li><b>📚 Library</b> — the swipe file: your winners + competitor outliers with thumbnails, metrics, why it worked, and a stealable angle. "＋ Make idea from this" spawns a pre-filled pipeline card linked to the reference.</li>
+        <li><b>📚 Library</b> — the swipe file: your winners + competitor outliers with thumbnails, metrics, the verbatim hook, the exact source (slide/timestamp), an outlier score (views ÷ followers — ≥5x is a true outlier), why it worked, and a stealable angle. "＋ Make idea from this" spawns a pre-filled pipeline card linked to the reference.</li>
+        <li><b>♻️ Repurpose</b> — the atomization engine. When a post hits 🚀 Published, open its card, press "♻️ Repurpose this post", and every format (newsletter, LinkedIn, X thread + short post, IG carousel slide text, IG caption, headline options) is queued as 🧠 To Generate. Tell Claude <code>repurpose [post title]</code> and the drafts appear, ready to review, approve and copy with one click.</li>
         <li><b>📊 Platforms / 🏢 Agency / 🔭 Competitors</b> — read-only analytics written by the daily agents.</li>
       </ul>
       <h4 class="dh">One-time setup (per person)</h4>
@@ -518,6 +564,7 @@ const DOCS = {
         <li><b>Never overwrites humans</b> — it only appends to the Feedback Log (<code>[date] Agent: note</code>) and never touches the stage or approval of anything a person has edited.</li>
         <li><b>Escalates</b> — anything stuck in ⏳ Pending Review for 7+ days gets flagged in the morning briefing.</li>
         <li><b>Closes the loop</b> — when a card hits 🚀 Published it asks for the published URL so the data agents can track its real performance.</li>
+        <li><b>Repurposes on demand</b> — when you say <code>repurpose [post title]</code> in Claude, it reads the published post + its linked references, applies direct-response copywriting frameworks (PAS, AIDA, awareness levels) and the competitor hook library, and writes a full draft into every queued asset in the ♻️ Repurpose tab — each with Angle Notes explaining the formula and references used.</li>
       </ol>
       <h4 class="dh">The rule that matters</h4>
       <p class="dp"><b>No naked advice.</b> Every idea and every todo must carry at least one reference — a post of yours or a competitor's with a real metric — proving the pattern works. If there's no receipt, it doesn't ship.</p>
@@ -538,10 +585,17 @@ function openDoc(which){
 function openCard(id){
   const rec = PIPE.find(r => r.id === id);
   if (!rec) return;
-  CURRENT = id;
+  CURRENT = id; REP_CURRENT = null;
   const f = rec.fields;
   const refs = (f["References"] || []).map(rid => LIB_BY_ID[rid]).filter(Boolean);
   const atts = (f["Reference Media"] || []);
+  const myReps = REPO.filter(r => ((r.fields["Source Post"])||[]).includes(id));
+  const repSection = (f["Stage"] === "🚀 Published" || myReps.length) ? `
+    <div class="fld"><label>♻️ Repurposed assets (${myReps.length})</label>
+      ${myReps.length ? `<div class="refs">${myReps.map(r => `<a class="refchip" href="#" onclick="event.preventDefault();openRep('${r.id}')"><span class="ph">${esc((r.fields["Format"]||"♻️").slice(0,2))}</span><span><span class="rl">${esc(r.fields["Format"]||"Asset")}</span><span class="rm">${esc(r.fields["Status"]||"")}</span></span></a>`).join("")}</div>` : ""}
+      ${f["Stage"] === "🚀 Published" && !myReps.length ? `<button class="btn sm" style="margin-top:6px" onclick="queueRepurpose('${id}')">♻️ Repurpose this post — queue all formats</button>
+      <div class="stamp" style="margin-top:8px">Queues newsletter, LinkedIn, X thread + post, IG carousel text, IG caption &amp; headline options as 🧠 To Generate. Then tell Claude: <code>repurpose ${esc((f["Title"]||"").slice(0,60))}</code></div>` : ""}
+    </div>` : "";
   document.getElementById("modal").innerHTML = `
     <h2>${esc(f["Title"])}</h2>
     <div class="sub">${esc(f["Stage"]||"")} · ${esc(f["Approval"]||"")} · ${esc(f["Format"]||"")} · added by ${esc(f["Added By"]||"—")} · source: ${esc(f["Source"]||"—")}</div>
@@ -563,6 +617,7 @@ function openCard(id){
 
     ${refs.length ? `<div class="fld"><label>📎 Linked references</label><div class="refs">${refs.map(refChip).join("")}</div></div>` : ""}
     ${atts.length ? `<div class="fld"><label>🖼 Attached media (add more in Airtable)</label><div class="refs">${atts.map(a => `<a class="refchip" href="${esc(a.url)}" target="_blank">${(a.thumbnails&&a.thumbnails.small)?`<img src="${esc(a.thumbnails.small.url)}">`:`<span class="ph">📄</span>`}<span><span class="rl">${esc(a.filename)}</span></span></a>`).join("")}</div></div>` : ""}
+    ${repSection}
 
     <div class="fld"><label>💬 Feedback & suggestions</label>
       <div class="feedlog" id="m-feedlog">${esc(f["Feedback Log"]||"") || "No feedback yet."}</div>
@@ -575,6 +630,7 @@ function openCard(id){
       <div class="right"><a class="btn ghost sm" href="https://airtable.com/${AT.baseId}" target="_blank">Open in Airtable ↗</a></div>
     </div>`;
   document.getElementById("overlay").classList.add("on");
+  wireDirty();
 }
 async function patchCurrent(fields, msg){
   const rec = PIPE.find(r => r.id === CURRENT);
@@ -613,6 +669,7 @@ async function addComment(){
   const el = document.getElementById("m-feedlog"); el.scrollTop = el.scrollHeight;
 }
 async function saveCard(){
+  DIRTY = false;
   await patchCurrent({
     "Title": document.getElementById("m-title").value,
     "Hook / Angle": document.getElementById("m-hook").value,
@@ -644,6 +701,7 @@ function openAdd(){
       <button class="btn ghost" onclick="closeModal()">Cancel</button>
     </div>`;
   document.getElementById("overlay").classList.add("on");
+  wireDirty();
 }
 async function createContent(){
   const title = document.getElementById("a-title").value.trim();
@@ -667,8 +725,159 @@ async function createContent(){
   try {
     const j = await AT.create(AT.tables.pipeline, fields);
     PIPE.push(j.records[0]);
-    closeModal(); renderBoard(); toast("Added to pipeline ✅");
+    DIRTY = false; closeModal(true); renderBoard(); toast("Added to pipeline ✅");
   } catch(e){ toast("⚠️ Create failed: " + e.message); }
+}
+
+/* ---------- repurposing engine ---------- */
+function pipeTitle(id){ const r = PIPE.find(p => p.id === id); return r ? (r.fields["Title"]||"") : ""; }
+async function queueRepurpose(pipeId){
+  const rec = PIPE.find(r => r.id === pipeId); if (!rec) return;
+  const existing = REPO.filter(r => ((r.fields["Source Post"])||[]).includes(pipeId)).map(r => r.fields["Format"]);
+  const toMake = REP_DEFAULT_QUEUE.filter(fm => !existing.includes(fm));
+  if (!toMake.length) return toast("All formats already queued");
+  toast("Queuing " + toMake.length + " formats…");
+  try {
+    for (const fm of toMake){
+      const j = await AT.create(AT.tables.repurpose, {
+        "Asset": fm + " — " + (rec.fields["Title"]||"").slice(0, 80),
+        "Format": fm, "Status": "🧠 To Generate",
+        "Source Post": [pipeId], "Assigned To": "AI",
+        "Created": new Date().toISOString().slice(0,10)
+      });
+      REPO.push(j.records[0]);
+    }
+    (rec.fields["Repurposing"] = rec.fields["Repurposing"] || []).push(...REPO.slice(-toMake.length).map(r => r.id));
+    toast("♻️ " + toMake.length + " assets queued — now tell Claude: repurpose " + (rec.fields["Title"]||"").slice(0, 50));
+    renderBoard(); renderRepurpose(); openCard(pipeId);
+  } catch(e){ toast("⚠️ Queue failed: " + e.message); }
+}
+function repMatches(f){
+  const s = (document.getElementById("r-search").value || "").toLowerCase();
+  const fm = document.getElementById("r-format").value;
+  const st = document.getElementById("r-status").value;
+  if (fm && f["Format"] !== fm) return false;
+  if (st && f["Status"] !== st) return false;
+  const src = ((f["Source Post"])||[]).map(pipeTitle).join(" ");
+  if (s && !((f["Asset"]||"") + " " + (f["Hook / Headline"]||"") + " " + (f["Draft"]||"") + " " + src).toLowerCase().includes(s)) return false;
+  return true;
+}
+function renderRepurpose(){
+  const body = document.getElementById("repurpose-body");
+  if (!AT.token()) return;
+  const cols = REP_STATUSES.map(st => {
+    const items = REPO.filter(r => (r.fields["Status"]||"🧠 To Generate") === st && repMatches(r.fields));
+    const cards = items.map(r => {
+      const f = r.fields;
+      const src = ((f["Source Post"])||[]).map(pipeTitle).filter(Boolean)[0] || "";
+      return `<div class="kitem" draggable="true" data-id="${r.id}" onclick="openRep('${r.id}')">
+        <div class="t">${esc(f["Format"]||f["Asset"]||"Asset")}</div>
+        ${src ? `<div class="why" style="font-size:11.5px;color:var(--muted);margin-top:4px">from: ${esc(src.slice(0,70))}</div>` : ""}
+        <div class="meta">
+          ${f["Assigned To"] ? `<span class="pill">👤 ${esc(f["Assigned To"])}</span>` : ""}
+          ${(f["Draft"]||"").trim() ? `<span class="pill" style="background:rgba(74,222,128,.13);color:var(--green)">📝 draft ready</span>` : ""}
+          ${(f["Feedback Log"]||"").trim() ? `<span class="pill">💬</span>` : ""}
+        </div>
+      </div>`;
+    }).join("");
+    return `<div class="kcol rcol" data-status="${esc(st)}"><h4><span>${esc(st)}</span><span>${items.length}</span></h4>${cards || `<div class="empty">Empty</div>`}</div>`;
+  }).join("");
+  body.innerHTML = REPO.length
+    ? `<div class="board">${cols}</div>`
+    : `<div class="empty">Nothing here yet. Publish a post in the Studio, open its card, and hit “♻️ Repurpose this post”.</div>`;
+  wireRepDnD();
+}
+function wireRepDnD(){
+  document.querySelectorAll("#repurpose-body .kitem").forEach(el => {
+    el.addEventListener("dragstart", e => { e.dataTransfer.setData("text/plain", el.dataset.id); el.classList.add("dragging"); });
+    el.addEventListener("dragend", () => el.classList.remove("dragging"));
+  });
+  document.querySelectorAll("#repurpose-body .kcol").forEach(col => {
+    col.addEventListener("dragover", e => { e.preventDefault(); col.classList.add("dragover"); });
+    col.addEventListener("dragleave", () => col.classList.remove("dragover"));
+    col.addEventListener("drop", async e => {
+      e.preventDefault(); col.classList.remove("dragover");
+      const id = e.dataTransfer.getData("text/plain");
+      const status = col.dataset.status;
+      const rec = REPO.find(r => r.id === id);
+      if (!rec || rec.fields["Status"] === status) return;
+      rec.fields["Status"] = status; renderRepurpose();
+      try { await AT.update(AT.tables.repurpose, id, { "Status": status }); toast("Moved to " + status); }
+      catch(err){ toast("⚠️ Save failed — refreshing"); loadStudio(true); }
+    });
+  });
+}
+function openRep(id){
+  const rec = REPO.find(r => r.id === id); if (!rec) return;
+  if (DIRTY && !confirm("You have unsaved edits — discard them?")) return;
+  DIRTY = false; REP_CURRENT = id; CURRENT = null;
+  const f = rec.fields;
+  const srcId = ((f["Source Post"])||[])[0];
+  document.getElementById("modal").innerHTML = `
+    <h2>${esc(f["Format"]||"♻️ Asset")}</h2>
+    <div class="sub">${esc(f["Status"]||"")}${srcId ? ` · from <a href="#" onclick="event.preventDefault();DIRTY=false;openCard('${srcId}')">${esc(pipeTitle(srcId).slice(0,80))}</a>` : ""} · 👤 ${esc(f["Assigned To"]||"—")}</div>
+    <div class="btnrow" style="margin:0 0 18px">
+      <button class="btn green sm" onclick="setRepStatus('✅ Approved')">👍 Approve</button>
+      <button class="btn amber sm" onclick="setRepStatus('👀 In Review')">👀 In review</button>
+      <button class="btn red sm" onclick="setRepStatus('❌ Rejected')">👎 Reject</button>
+      <button class="btn sm" onclick="copyDraft()">📋 Copy draft</button>
+      <div class="right">
+        <select id="r-stsel" onchange="setRepStatus(this.value)">${REP_STATUSES.map(s => `<option ${s===f["Status"]?"selected":""}>${s}</option>`).join("")}</select>
+      </div>
+    </div>
+    <div class="fld"><label>Hook / Headline</label><textarea id="rp-hook">${esc(f["Hook / Headline"]||"")}</textarea></div>
+    <div class="fld"><label>Draft (the full ready-to-post copy)</label><textarea id="rp-draft" class="tall" style="min-height:220px" placeholder="Tell Claude: repurpose ${esc(pipeTitle(srcId).slice(0,50))} — and the AI fills this in.">${esc(f["Draft"]||"")}</textarea></div>
+    <div class="fld"><label>Angle notes (formula, awareness level, references used)</label><textarea id="rp-angle">${esc(f["Angle Notes"]||"")}</textarea></div>
+    <div class="fld"><label>Published URL</label><input type="text" id="rp-url" value="${esc(f["Published URL"]||"")}"></div>
+    <div class="fld"><label>💬 Feedback</label>
+      <div class="feedlog" id="r-feedlog">${esc(f["Feedback Log"]||"") || "No feedback yet."}</div>
+      <div class="commentrow"><input type="text" id="r-comment" placeholder="Leave a comment…" onkeydown="if(event.key==='Enter')addRepComment()"><button class="btn sm" onclick="addRepComment()">Send</button></div>
+    </div>
+    <div class="btnrow">
+      <button class="btn" onclick="saveRep()">💾 Save changes</button>
+      <button class="btn ghost" onclick="closeModal()">Close</button>
+      <div class="right"><a class="btn ghost sm" href="https://airtable.com/${AT.baseId}" target="_blank">Open in Airtable ↗</a></div>
+    </div>`;
+  document.getElementById("overlay").classList.add("on");
+  wireDirty();
+}
+async function patchRep(fields, msg){
+  const rec = REPO.find(r => r.id === REP_CURRENT); if (!rec) return;
+  Object.assign(rec.fields, fields);
+  try { await AT.update(AT.tables.repurpose, REP_CURRENT, fields); if (msg) toast(msg); }
+  catch(e){ toast("⚠️ Save failed"); }
+  renderRepurpose();
+}
+async function setRepStatus(val){
+  const rec = REPO.find(r => r.id === REP_CURRENT); if (!rec) return;
+  const log = (rec.fields["Feedback Log"] || "");
+  await patchRep({ "Status": val, "Feedback Log": (log ? log + "\n" : "") + feedbackLine(val) }, val + " — saved");
+  openRep(REP_CURRENT);
+}
+async function addRepComment(){
+  const inp = document.getElementById("r-comment");
+  const txt = inp.value.trim(); if (!txt) return;
+  if (!myName()) askName();
+  const rec = REPO.find(r => r.id === REP_CURRENT); if (!rec) return;
+  const log = (rec.fields["Feedback Log"] || "");
+  inp.value = "";
+  await patchRep({ "Feedback Log": (log ? log + "\n" : "") + feedbackLine(txt) }, "Comment added");
+  openRep(REP_CURRENT);
+}
+async function saveRep(){
+  DIRTY = false;
+  await patchRep({
+    "Hook / Headline": document.getElementById("rp-hook").value,
+    "Draft": document.getElementById("rp-draft").value,
+    "Angle Notes": document.getElementById("rp-angle").value,
+    "Published URL": document.getElementById("rp-url").value
+  }, "Saved");
+}
+function copyDraft(){
+  const rec = REPO.find(r => r.id === REP_CURRENT); if (!rec) return;
+  const txt = document.getElementById("rp-draft") ? document.getElementById("rp-draft").value : (rec.fields["Draft"]||"");
+  if (!txt.trim()) return toast("No draft to copy yet");
+  navigator.clipboard.writeText(txt).then(() => toast("📋 Draft copied — go post it"), () => toast("⚠️ Copy failed"));
 }
 
 /* ---------- library ---------- */
@@ -680,7 +889,7 @@ function renderLibrary(){
   const pl = document.getElementById("l-plat").value;
   const items = LIB.filter(r => {
     const f = r.fields;
-    if (ty && f["Type"] !== ty) return false;
+    if (ty && !(f["Type"]||"").includes(ty)) return false;
     if (pl && f["Platform"] !== pl) return false;
     if (s && !((f["Title"]||"") + " " + (f["Creator"]||"") + " " + (f["Why It Worked"]||"") + " " + (f["Stealable Angle"]||"")).toLowerCase().includes(s)) return false;
     return true;
@@ -694,7 +903,9 @@ function renderLibrary(){
         <span class="pill" style="float:right">${esc(f["Type"]||"")}</span>
         <div class="t">${esc(f["Title"])}</div>
         <div class="by">${PLATFORM_ICON[f["Platform"]]||""} ${esc(f["Creator"]||"")} ${f["Date Spotted"] ? "· " + esc(f["Date Spotted"]) : ""}</div>
-        ${f["Metric"] ? `<div class="metric">📊 ${esc(f["Metric"])}</div>` : ""}
+        ${f["Metric"] || f["Outlier Score"] ? `<div class="metric">📊 ${esc(f["Metric"]||"")}${f["Outlier Score"] ? ` · <b>${esc(f["Outlier Score"])} outlier</b>` : ""}</div>` : ""}
+        ${f["Hook (verbatim)"] ? `<div class="why" style="color:var(--amber)">🪝 “${esc(f["Hook (verbatim)"])}”${f["Hook Angle"] ? ` <span class="pill">${esc(f["Hook Angle"])}</span>` : ""}</div>` : ""}
+        ${f["Exact Source"] ? `<div class="why" style="color:var(--muted)">📍 ${esc(f["Exact Source"])}</div>` : ""}
         ${f["Why It Worked"] ? `<div class="why">💡 ${esc(f["Why It Worked"])}</div>` : ""}
         ${f["Stealable Angle"] ? `<div class="steal">🎯 Steal: ${esc(f["Stealable Angle"])}</div>` : ""}
         ${usedBy.length ? `<div class="why" style="color:var(--muted)">🔗 Used by: ${usedBy.map(u => esc(u.fields["Title"])).join(" · ")}</div>` : ""}
@@ -730,6 +941,7 @@ const TABS = [
   { id: "today", label: "🌅 Today", n: openTodos || null },
   { id: "studio", label: "🎬 Studio" },
   { id: "library", label: "📚 Library" },
+  { id: "repurpose", label: "♻️ Repurpose" },
   { id: "platforms", label: "📊 Platforms" },
   { id: "agency", label: "🏭 Agency" },
   { id: "competitors", label: "🕵️ Competitors" }
@@ -748,7 +960,7 @@ function showTab(id){
     document.getElementById("btn-" + t.id).classList.toggle("on", t.id === id);
   });
   store("hq-tab", id);
-  if (id === "studio" || id === "library") loadStudio();
+  if (id === "studio" || id === "library" || id === "repurpose") loadStudio();
 }
 
 /* ================= Briefing ================= */
@@ -894,22 +1106,38 @@ renderPlatform("card-youtube", "▶️", "YouTube", HQ.youtube,
     return;
   }
   box.innerHTML = `
+    <div class="stamp" style="margin-bottom:12px">${stamp(c.updatedAt)} · ${c.creators.length} creators tracked</div>
+    <div class="libgrid" style="margin-bottom:20px">${c.creators.map(cr=>`
+      <div class="libcard"><div class="body">
+        <span class="pill" style="float:right">${cr.platform||""}</span>
+        <div class="t">${cr.name} <span style="color:var(--muted);font-weight:400;font-size:12px">${cr.handle||""}</span></div>
+        ${cr.niche ? `<div class="by">🎯 ${cr.niche}${cr.followers && cr.followers !== "—" ? " · " + cr.followers : ""}</div>` : ""}
+        ${cr.cadence && cr.cadence !== "—" ? `<div class="metric">🗓 ${cr.cadence}</div>` : ""}
+        ${cr.signature ? `<div class="why">✍️ ${cr.signature}</div>` : ""}
+        ${cr.steal ? `<div class="steal">🎯 Steal: ${cr.steal}</div>` : ""}
+      </div></div>`).join("")}</div>
     <div class="grid">
-      <div class="card"><h3>👥 Tracked creators</h3><div class="stamp">${stamp(c.updatedAt)}</div>
-        <div class="posts">${c.creators.map(cr=>`<div class="post"><span>${cr.name} <span style="color:var(--muted)">${cr.handle||""}</span></span><span class="m">${cr.platform||""}</span></div>`).join("")}</div></div>
       <div class="card"><h3>💥 Recent outliers</h3>
-        <div class="posts">${(c.outliers||[]).map(o=>`<div class="post"><span><b>${o.creator}</b>: ${o.title}<br><span style="color:var(--muted);font-size:12px">${o.stealableAngle||o.whyItWorked||""}</span></span><span class="m">${o.metric||""}</span></div>`).join("") || '<div class="empty">No outliers logged yet.</div>'}</div>
-        ${listBlock("Insights", c.insights)}</div>
+        <div class="posts">${(c.outliers||[]).map(o=>`<div class="post"><span><b>${o.creator}</b>: ${o.url ? `<a href="${o.url}" target="_blank">${o.title}</a>` : o.title}${o.exactSource ? `<br><span style="color:var(--amber);font-size:11.5px">📍 ${o.exactSource}</span>` : ""}<br><span style="color:var(--muted);font-size:12px">${o.stealableAngle||o.whyItWorked||""}</span></span><span class="m">${o.metric||""}</span></div>`).join("") || '<div class="empty">No outliers logged yet.</div>'}</div></div>
+      <div class="card"><h3>🧠 Insights</h3>${listBlock("What the data says", c.insights)}</div>
     </div>
-    <div class="callout" style="margin-top:18px">💡 Full reference cards with thumbnails now live in the <b>📚 Library</b> tab — every outlier is stored there permanently and can be turned into a pipeline idea with one click.</div>`;
+    <div class="callout" style="margin-top:18px">💡 Full reference cards with thumbnails, verbatim hooks, exact sources and outlier scores live in the <b>📚 Library</b> tab — every outlier is stored there permanently and can be turned into a pipeline idea with one click.</div>`;
 })();
 
 /* ================= wiring ================= */
 document.getElementById("btn-add").onclick = openAdd;
 document.getElementById("btn-refresh").onclick = () => loadStudio(true);
 document.getElementById("btn-lib-refresh").onclick = () => loadStudio(true);
+document.getElementById("btn-rep-refresh").onclick = () => loadStudio(true);
 ["f-search","f-platform","f-priority","f-approval"].forEach(id => document.getElementById(id).addEventListener("input", renderBoard));
 ["l-search","l-type","l-plat"].forEach(id => document.getElementById(id).addEventListener("input", renderLibrary));
+["r-search","r-format","r-status"].forEach(id => document.getElementById(id).addEventListener("input", renderRepurpose));
+(function(){
+  const fsel = document.getElementById("r-format");
+  REP_FORMATS.forEach(f => { const o = document.createElement("option"); o.textContent = f; fsel.appendChild(o); });
+  const ssel = document.getElementById("r-status");
+  REP_STATUSES.forEach(s => { const o = document.createElement("option"); o.textContent = s; ssel.appendChild(o); });
+})();
 (function(){
   const sel = document.getElementById("f-platform");
   Object.keys(PLATFORM_ICON).filter(p => p !== "Other").forEach(p => { const o = document.createElement("option"); o.textContent = p; sel.appendChild(o); });
