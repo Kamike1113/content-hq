@@ -51,3 +51,23 @@ The folder is a git repo (history of every daily run). To put it on GitHub:
 3. Claude connects it and pushes; from then on the daily run auto-commits and pushes, so you can pull/view your data anywhere.
 
 ⚠️ Don't enable GitHub Pages on this repo unless you're comfortable making your analytics public.
+
+---
+
+## 🆕 Dashboard V2 (dashboard-v2.html) — live workflow edition
+
+V1 (`dashboard.html`) is untouched and still works. V2 adds a live, team-editable layer on top, powered by Airtable.
+
+**New tabs**
+- **🎬 Studio** — a kanban board of the whole content pipeline (Idea → Approved → Scripting → Filming → Editing → Ready → Published). Drag cards between stages, click a card to open it: approve 👍 / request changes ✏️ / reject 👎, edit the title/hook/script/references inline, and leave timestamped comments in the Feedback Log. "+ Add content" creates a new idea straight into the pipeline.
+- **📚 Library** — the swipe file. Every reference (your winners + competitor outliers) with thumbnail, metric, "why it worked" and a stealable angle. One click on "＋ Make idea from this" spawns a pre-filled pipeline card linked to that reference.
+
+**One-time setup per person**
+1. Open dashboard-v2.html → Studio tab → it asks for an Airtable token.
+2. Create one at airtable.com/create/tokens with scopes `data.records:read` + `data.records:write` on the **Content HQ** base.
+3. Paste it once — it's stored only in YOUR browser (localStorage), never in the repo, so the public site stays safe.
+4. Pick your name in the header so comments/approvals are attributed to you.
+
+**Where the data lives**: Airtable base "Content HQ" — tables *Content Pipeline* and *Reference Library*. Edit there or in the dashboard; both stay in sync because the dashboard reads/writes Airtable live.
+
+**Media references**: paste any YouTube link into Reference Links and the card auto-shows the thumbnail; attach images/screenshots in Airtable's Reference Media field for anything else. Todos on the Today tab can also carry reference chips (see `agents/content-pipeline-agent.md`).

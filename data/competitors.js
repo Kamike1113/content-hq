@@ -8,7 +8,10 @@ window.HQ.competitors = {
     { name: "Less Is Moore", handle: "@lessismooreemail", platform: "IG", why: "Email marketing on IG (manual tracking — no IG scraper yet)" },
     { name: "Osh Alchemy", handle: "@oshalchemy", platform: "X", why: "X-native ecom writing (manual tracking — no X scraper yet)" },
     { name: "Kasper Dolk", handle: "@kasper_dolk", platform: "X", why: "X-native DTC/agency content (manual tracking)" },
-    { name: "DTC Pages", handle: "@dtcpages", platform: "X", why: "Landing-page teardown format on X (manual tracking)" }
+    { name: "DTC Pages", handle: "@dtcpages", platform: "X", why: "Landing-page teardown format on X (manual tracking)" },
+    { name: "Dara Denney", handle: "youtube.com/daradenney", platform: "YT · X", why: "NEW (Jul 7): Performance creative / Meta ads strategist — study her educational YT packaging (adjacent niche, huge production quality)" },
+    { name: "Jack Boxer", handle: "@jboxer_", platform: "IG", why: "NEW (Jul 7): Vysionary — premium/luxury omnichannel ecom strategy on IG (manual tracking — no IG scraper yet)" },
+    { name: "Nathan Perdriau", handle: "@nathan.perdriau", platform: "IG", why: "NEW (Jul 7): Blue Sense Digital co-founder — 8-12 IG posts/day volume strategy feeding paid funnels (manual tracking)" }
   ],
   outliers: [
     { creator: "Max Sturtevant", title: "I Studied Every $1B DTC Brand So You Don't Have To", platform: "YouTube", metric: "22,493 views (5.2x recent median, still compounding: +145 today)",

@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Content HQ v2 — Andrei</title>
+<script src="data/briefing.js"></script>
+<script src="data/instagram.js"></script>
+<script src="data/x.js"></script>
+<script src="data/youtube.js"></script>
+<script src="data/agents.js"></script>
+<script src="data/todos.js"></script>
+<script src="data/pipeline.js"></script>
+<script src="data/competitors.js"></script>
+<style>
+  :root {
+    --bg: #0b0d12; --card: #141824; --card2: #1a2030; --card3: #202742; --border: #232a3d;
+    --text: #e8ecf4; --muted: #8b93a7; --accent: #6ea8fe; --green: #4ade80;
+    --red: #f87171; --amber: #fbbf24; --purple: #c084fc; --teal: #2dd4bf;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 28px 24px 64px; }
+  .wrap { max-width: 1400px; margin: 0 auto; }
+  header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 18px; flex-wrap: wrap; gap: 8px; }
+  h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; }
+  h1 span { color: var(--accent); }
+  .date { color: var(--muted); font-size: 14px; }
+  .whoami { font-size: 13px; color: var(--muted); }
+  .whoami b { color: var(--accent); cursor: pointer; }
+
+  nav { display: flex; gap: 6px; margin-bottom: 22px; flex-wrap: wrap; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
+  nav button { background: var(--card); border: 1px solid var(--border); color: var(--muted); font-size: 14px; font-weight: 600; padding: 9px 16px; border-radius: 10px; cursor: pointer; transition: all .15s; }
+  nav button:hover { color: var(--text); }
+  nav button.on { background: rgba(110,168,254,.14); border-color: rgba(110,168,254,.5); color: var(--accent); }
+  nav button .n { display: inline-block; margin-left: 6px; background: var(--accent); color: #0b0d12; border-radius: 99px; font-size: 11px; padding: 1px 7px; }
+  .tab { display: none; }
+  .tab.on { display: block; }
+
+  .briefing { background: linear-gradient(135deg, #16203a, #131828); border: 1px solid var(--border); border-radius: 16px; padding: 24px 28px; margin-bottom: 20px; }
+  .briefing h2 { font-size: 18px; margin-bottom: 8px; line-height: 1.4; }
+  .briefing p { color: var(--muted); line-height: 1.55; font-size: 14.5px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 22px; }
+  .card h3 { font-size: 15px; display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .stamp { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+  .kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+  .kpi { background: var(--card2); border-radius: 10px; padding: 10px 12px; }
+  .kpi .label { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .kpi .value { font-size: 20px; font-weight: 700; margin-top: 2px; }
+  .kpi .delta { font-size: 12px; margin-left: 6px; font-weight: 600; }
+  .up { color: var(--green); } .down { color: var(--red); }
+  .section-label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 14px 0 8px; }
+  ul.plain { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+  ul.plain li { font-size: 13.5px; line-height: 1.5; color: #c9d1e3; background: var(--card2); border-radius: 8px; padding: 8px 12px; }
+  ul.plain li.rec { border-left: 3px solid var(--accent); }
+  .post { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; background: var(--card2); border-radius: 8px; padding: 8px 12px; }
+  .post .m { color: var(--muted); white-space: nowrap; }
+  .posts { display: flex; flex-direction: column; gap: 6px; }
+  .chart { background: var(--card2); border-radius: 10px; padding: 12px 12px 6px; margin-bottom: 4px; }
+  .chart svg { width: 100%; height: 72px; display: block; }
+  .chart .cl { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 6px; display: flex; justify-content: space-between; }
+  .chart .cl b { color: var(--text); }
+
+  /* To-dos */
+  .todo { display: flex; gap: 12px; align-items: flex-start; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; transition: opacity .2s; }
+  .todo.done { opacity: .45; }
+  .todo.done .t { text-decoration: line-through; }
+  .todo input { margin-top: 3px; width: 17px; height: 17px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+  .todo .t { font-size: 14.5px; font-weight: 600; line-height: 1.4; }
+  .todo .why { font-size: 12.5px; color: var(--muted); margin-top: 3px; line-height: 1.45; }
+  .tag { display: inline-block; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; border-radius: 6px; padding: 2px 7px; margin-right: 6px; vertical-align: 1px; }
+  .tag.film { background: rgba(248,113,113,.15); color: var(--red); }
+  .tag.write { background: rgba(110,168,254,.15); color: var(--accent); }
+  .tag.post { background: rgba(74,222,128,.13); color: var(--green); }
+  .tag.admin { background: rgba(251,191,36,.13); color: var(--amber); }
+  .tag.platform { background: var(--card2); color: var(--muted); }
+  .progress { height: 6px; background: var(--card2); border-radius: 99px; overflow: hidden; margin: 4px 0 18px; }
+  .progress div { height: 100%; background: linear-gradient(90deg, var(--accent), var(--green)); border-radius: 99px; transition: width .3s; }
+  .progress-label { font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+
+  /* Reference chips (used on todos, cards, modal) */
+  .refs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 9px; }
+  .refchip { display: flex; gap: 9px; align-items: center; background: var(--card2); border: 1px solid var(--border); border-radius: 9px; padding: 6px 10px 6px 6px; max-width: 330px; text-decoration: none; color: var(--text); transition: border-color .15s; }
+  .refchip:hover { border-color: rgba(110,168,254,.55); }
+  .refchip img { width: 58px; height: 34px; object-fit: cover; border-radius: 6px; flex-shrink: 0; background: var(--card3); }
+  .refchip .ph { width: 58px; height: 34px; border-radius: 6px; flex-shrink: 0; background: var(--card3); display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .refchip .rl { font-size: 12px; font-weight: 600; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .refchip .rm { font-size: 10.5px; color: var(--muted); margin-top: 1px; }
+
+  /* Agents */
+  .agent { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
+  .agent h3 { font-size: 15px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .agent p { font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .agent .meta { margin-top: 12px; font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
+  .agent .blocked { margin-top: 10px; font-size: 12.5px; color: var(--amber); background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.25); border-radius: 8px; padding: 8px 10px; line-height: 1.45; }
+  .badge { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; border-radius: 99px; padding: 3px 9px; }
+  .badge.active { background: rgba(74,222,128,.15); color: var(--green); }
+  .badge.semi-manual { background: rgba(110,168,254,.15); color: var(--accent); }
+  .badge.waiting { background: rgba(251,191,36,.15); color: var(--amber); }
+  .badge.planned { background: rgba(139,147,167,.15); color: var(--muted); }
+
+  /* Studio (Airtable kanban) */
+  .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+  .toolbar input[type=text], .toolbar select { background: var(--card); border: 1px solid var(--border); color: var(--text); border-radius: 9px; padding: 8px 12px; font-size: 13px; }
+  .toolbar input[type=text] { min-width: 220px; }
+  .btn { background: rgba(110,168,254,.14); border: 1px solid rgba(110,168,254,.5); color: var(--accent); font-size: 13px; font-weight: 700; padding: 9px 16px; border-radius: 9px; cursor: pointer; transition: all .15s; }
+  .btn:hover { background: rgba(110,168,254,.25); }
+  .btn.green { background: rgba(74,222,128,.12); border-color: rgba(74,222,128,.5); color: var(--green); }
+  .btn.green:hover { background: rgba(74,222,128,.22); }
+  .btn.red { background: rgba(248,113,113,.10); border-color: rgba(248,113,113,.45); color: var(--red); }
+  .btn.red:hover { background: rgba(248,113,113,.2); }
+  .btn.amber { background: rgba(251,191,36,.10); border-color: rgba(251,191,36,.45); color: var(--amber); }
+  .btn.ghost { background: transparent; border-color: var(--border); color: var(--muted); }
+  .btn.sm { padding: 6px 11px; font-size: 12px; }
+  .board { display: flex; gap: 14px; overflow-x: auto; padding-bottom: 12px; align-items: flex-start; }
+  .kcol { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 14px; min-width: 272px; width: 272px; flex-shrink: 0; }
+  .kcol h4 { font-size: 12.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 12px; display: flex; justify-content: space-between; }
+  .kcol.dragover { border-color: rgba(110,168,254,.6); background: #16203a; }
+  .kitem { background: var(--card2); border: 1px solid transparent; border-radius: 10px; padding: 11px 13px; margin-bottom: 10px; cursor: grab; transition: border-color .15s; }
+  .kitem:hover { border-color: rgba(110,168,254,.45); }
+  .kitem.dragging { opacity: .4; }
+  .kitem .t { font-size: 13px; font-weight: 600; line-height: 1.4; }
+  .kitem .meta { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 7px; }
+  .pill { font-size: 10px; font-weight: 700; border-radius: 6px; padding: 2px 7px; background: var(--card3); color: var(--muted); }
+  .pill.p1 { background: rgba(248,113,113,.15); color: var(--red); }
+  .pill.appr-ok { background: rgba(74,222,128,.15); color: var(--green); }
+  .pill.appr-pending { background: rgba(251,191,36,.13); color: var(--amber); }
+  .pill.appr-changes { background: rgba(251,146,60,.15); color: #fb923c; }
+  .pill.appr-no { background: rgba(248,113,113,.15); color: var(--red); }
+  .kitem .thumbs { display: flex; gap: 5px; margin-top: 8px; }
+  .kitem .thumbs img { width: 64px; height: 36px; object-fit: cover; border-radius: 6px; }
+  .empty { color: var(--muted); font-size: 13px; padding: 8px 2px; }
+  .recipe { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px 22px; margin-bottom: 18px; }
+  .recipe-flow { display: flex; align-items: stretch; gap: 14px; flex-wrap: wrap; margin-top: 14px; }
+  .recipe-src { background: linear-gradient(135deg, #2a1a3a, #1a1428); border: 1px solid rgba(192,132,252,.4); border-radius: 12px; padding: 16px; min-width: 180px; display: flex; flex-direction: column; justify-content: center; }
+  .recipe-src .big { font-size: 15px; font-weight: 700; color: var(--purple); }
+  .recipe-src .sm { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .arrow { align-self: center; color: var(--muted); font-size: 22px; }
+  .recipe-groups { flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; min-width: 300px; }
+  .rgroup { background: var(--card2); border-radius: 10px; padding: 12px 14px; }
+  .rgroup .g { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); margin-bottom: 8px; }
+  .rgroup ul { list-style: none; }
+  .rgroup li { font-size: 12.5px; color: #c9d1e3; padding: 3px 0; line-height: 1.4; }
+  .rgroup li::before { content: "· "; color: var(--muted); }
+
+  /* Library */
+  .libgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+  .libcard { background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+  .libcard .cover { width: 100%; height: 150px; object-fit: cover; display: block; background: var(--card3); }
+  .libcard .body { padding: 14px 16px 16px; }
+  .libcard .t { font-size: 14px; font-weight: 700; line-height: 1.35; }
+  .libcard .by { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .libcard .metric { font-size: 12px; color: var(--teal); font-weight: 700; margin-top: 6px; }
+  .libcard .why { font-size: 12.5px; color: #c9d1e3; margin-top: 8px; line-height: 1.45; }
+  .libcard .steal { font-size: 12.5px; color: var(--purple); margin-top: 7px; line-height: 1.45; }
+  .libcard .foot { display: flex; gap: 8px; margin-top: 12px; }
+
+  /* Modal */
+  .overlay { position: fixed; inset: 0; background: rgba(4,6,12,.72); display: none; align-items: flex-start; justify-content: center; padding: 40px 16px; z-index: 50; overflow-y: auto; }
+  .overlay.on { display: flex; }
+  .modal { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 26px 28px; width: 100%; max-width: 720px; }
+  .modal h2 { font-size: 18px; line-height: 1.35; margin-bottom: 4px; }
+  .modal .sub { font-size: 12.5px; color: var(--muted); margin-bottom: 16px; }
+  .fld { margin-bottom: 14px; }
+  .fld label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin-bottom: 5px; }
+  .fld input[type=text], .fld textarea, .fld select { width: 100%; background: var(--card2); border: 1px solid var(--border); color: var(--text); border-radius: 9px; padding: 9px 12px; font-size: 13.5px; font-family: inherit; line-height: 1.5; }
+  .fld textarea { resize: vertical; min-height: 64px; }
+  .fld textarea.tall { min-height: 140px; }
+  .btnrow { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; align-items: center; }
+  .btnrow .right { margin-left: auto; display: flex; gap: 8px; }
+  .feedlog { background: var(--card2); border-radius: 10px; padding: 10px 13px; font-size: 12.5px; line-height: 1.6; color: #c9d1e3; white-space: pre-wrap; max-height: 180px; overflow-y: auto; }
+  .commentrow { display: flex; gap: 8px; margin-top: 8px; }
+  .commentrow input { flex: 1; background: var(--card2); border: 1px solid var(--border); color: var(--text); border-radius: 9px; padding: 9px 12px; font-size: 13px; }
+
+  .callout { background: rgba(251,191,36,.07); border: 1px solid rgba(251,191,36,.3); border-radius: 14px; padding: 18px 22px; font-size: 14px; line-height: 1.55; margin-bottom: 20px; }
+  .callout b { color: var(--amber); }
+  .setup { background: linear-gradient(135deg, #16203a, #131828); border: 1px solid var(--border); border-radius: 16px; padding: 26px 30px; max-width: 660px; line-height: 1.6; font-size: 14px; }
+  .setup h3 { margin-bottom: 10px; }
+  .setup ol { margin: 10px 0 14px 20px; color: #c9d1e3; }
+  .setup li { margin-bottom: 6px; }
+  .setup input { width: 100%; background: var(--card2); border: 1px solid var(--border); color: var(--text); border-radius: 9px; padding: 10px 13px; font-size: 13px; margin: 4px 0 12px; }
+  #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--card3); border: 1px solid var(--border); color: var(--text); border-radius: 12px; padding: 11px 20px; font-size: 13.5px; display: none; z-index: 99; box-shadow: 0 8px 30px rgba(0,0,0,.5); }
+  footer { margin-top: 36px; color: var(--muted); font-size: 12.5px; text-align: center; }
+  code { background: var(--card2); border-radius: 5px; padding: 1px 6px; font-size: 12px; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🧠 Content <span>HQ</span> <span style="font-size:13px;color:var(--muted);font-weight:600">v2</span></h1>
+    <div style="display:flex;gap:16px;align-items:baseline">
+      <div class="whoami" id="whoami"></div>
+      <div class="date" id="today"></div>
+    </div>
+  </header>
+
+  <nav id="nav"></nav>
+
+  <div class="tab" id="tab-today">
+    <div class="briefing" id="briefing"></div>
+    <div class="progress-label" id="todo-progress-label"></div>
+    <div class="progress"><div id="todo-progress" style="width:0%"></div></div>
+    <div id="todos"></div>
+  </div>
+
+  <div class="tab" id="tab-studio">
+    <div class="toolbar">
+      <button class="btn" id="btn-add">＋ Add content</button>
+      <input type="text" id="f-search" placeholder="🔎 Search…">
+      <select id="f-platform"><option value="">All platforms</option></select>
+      <select id="f-priority"><option value="">All priorities</option><option>🔥 P1</option><option>P2</option><option>P3</option></select>
+      <select id="f-approval"><option value="">All approvals</option><option>⏳ Pending Review</option><option>👍 Approved</option><option>✏️ Changes Requested</option><option>👎 Rejected</option></select>
+      <button class="btn ghost sm" id="btn-refresh">↻ Refresh</button>
+      <span class="stamp" id="studio-stamp" style="margin:0"></span>
+    </div>
+    <div id="studio-body"></div>
+    <details class="recipe" style="margin-top:18px">
+      <summary style="cursor:pointer;font-weight:700;font-size:14px">🔁 The Recipe — film once, publish everywhere</summary>
+      <div class="stamp" style="margin-top:8px">Every long-form video that enters the pipeline gets turned into all of this.</div>
+      <div class="recipe-flow">
+        <div class="recipe-src"><div class="big">🎥 1 YouTube video</div><div class="sm">(or standalone IG video)</div><div class="sm">→ transcript → AI team</div></div>
+        <div class="arrow">➜</div>
+        <div class="recipe-groups" id="recipe-groups"></div>
+      </div>
+    </details>
+  </div>
+
+  <div class="tab" id="tab-library">
+    <div class="toolbar">
+      <input type="text" id="l-search" placeholder="🔎 Search references…">
+      <select id="l-type"><option value="">All types</option><option>Competitor</option><option>Own Post</option><option>Trend</option></select>
+      <select id="l-plat"><option value="">All platforms</option><option>YouTube</option><option>Instagram</option><option>X</option><option>LinkedIn</option><option>TikTok</option><option>Other</option></select>
+      <button class="btn ghost sm" id="btn-lib-refresh">↻ Refresh</button>
+    </div>
+    <div id="library-body"></div>
+  </div>
+
+  <div class="tab" id="tab-platforms">
+    <div class="grid">
+      <div class="card" id="card-instagram"></div>
+      <div class="card" id="card-x"></div>
+      <div class="card" id="card-youtube"></div>
+    </div>
+  </div>
+
+  <div class="tab" id="tab-agency">
+    <div class="grid" id="agents"></div>
+  </div>
+
+  <div class="tab" id="tab-competitors">
+    <div id="competitors"></div>
+  </div>
+
+  <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
+  <div id="toast"></div>
+
+  <footer>Content database lives in Airtable (<code>Content HQ</code> base) · analytics data in <code>data/*.js</code> · agents run daily via Cowork</footer>
+</div>
+
+<script>
+/* ================= shared helpers ================= */
+const HQ = window.HQ || {};
+const fmt = n => n == null ? "—" : (typeof n === "number" && n >= 1000 ? Intl.NumberFormat("en", {notation:"compact", maximumFractionDigits:1}).format(n) : n);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const deltaHtml = d => {
+  if (d == null || d === 0) return "";
+  const up = (typeof d === "number" ? d > 0 : !String(d).startsWith("-"));
+  return `<span class="delta ${up ? "up" : "down"}">${up ? "▲" : "▼"} ${esc(String(d).replace("-",""))}</span>`;
+};
+const stamp = t => t ? "Updated " + t : "Not yet updated";
+document.getElementById("today").textContent = new Date().toLocaleDateString("en-US", {weekday:"long", year:"numeric", month:"long", day:"numeric"});
+function store(k, v){ try { localStorage.setItem(k, v); } catch(e){} }
+function load(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
+function isDone(id){ return load("todo-" + id) === "1"; }
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.style.display = "block";
+  clearTimeout(t._h); t._h = setTimeout(() => t.style.display = "none", 2600);
+}
+/* Extract a YouTube thumbnail from any YouTube URL that has a video id */
+function ytThumb(url){
+  if (!url) return null;
+  const m = String(url).match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+  return m ? `https://i.ytimg.com/vi/${m[1]}/mqdefault.jpg` : null;
+}
+const PLATFORM_ICON = { YouTube: "▶️", Instagram: "📸", X: "𝕏", LinkedIn: "💼", TikTok: "🎵", Threads: "🧵", Facebook: "📘", Newsletter: "✉️", Other: "🔗" };
+
+/* ================= identity (who is using the dashboard) ================= */
+function myName(){ return load("hq-user") || ""; }
+function askName(force){
+  let n = myName();
+  if (!n || force){
+    n = prompt("Your name (shown on approvals & comments):", n || "") || "";
+    if (n) store("hq-user", n.trim());
+  }
+  renderWho();
+  return myName();
+}
+function renderWho(){
+  const n = myName();
+  document.getElementById("whoami").innerHTML = n
+    ? `👤 <b onclick="askName(true)" title="Click to change">${esc(n)}</b>`
+    : `<b onclick="askName(true)">Set your name →</b>`;
+}
+renderWho();
+
+/* ================= Airtable client ================= */
+const AT = {
+  baseId: "app55KhrinUlp0Zwv",
+  tables: { pipeline: "Content Pipeline", library: "Reference Library" },
+  token(){ return load("hq-at-token") || ""; },
+  async req(path, opts = {}){
+    const res = await fetch(`https://api.airtable.com/v0/${this.baseId}/${path}`, {
+      ...opts,
+      headers: { "Authorization": "Bearer " + this.token(), "Content-Type": "application/json", ...(opts.headers||{}) }
+    });
+    if (res.status === 401 || res.status === 403){ throw new Error("AUTH"); }
+    if (!res.ok){ throw new Error("Airtable error " + res.status + ": " + await res.text()); }
+    return res.json();
+  },
+  async list(table){
+    let records = [], offset;
+    do {
+      const q = new URLSearchParams({ pageSize: "100" });
+      if (offset) q.set("offset", offset);
+      const j = await this.req(encodeURIComponent(table) + "?" + q);
+      records = records.concat(j.records); offset = j.offset;
+    } while (offset);
+    return records;
+  },
+  update(table, id, fields){ return this.req(encodeURIComponent(table) + "/" + id, { method: "PATCH", body: JSON.stringify({ fields }) }); },
+  create(table, fields){ return this.req(encodeURIComponent(table), { method: "POST", body: JSON.stringify({ records: [{ fields }], typecast: true }) }); }
+};
+
+const STAGES = ["💡 Idea","✅ Approved","✍️ Scripting","🎬 Filming","✂️ Editing","📦 Ready to Publish","🚀 Published","❌ Rejected"];
+const APPR = { pending: "⏳ Pending Review", ok: "👍 Approved", changes: "✏️ Changes Requested", no: "👎 Rejected" };
+let PIPE = [];   // pipeline records
+let LIB = [];    // library records
+let LIB_BY_ID = {};
+let loaded = false;
+
+function setupPanel(target, what){
+  document.getElementById(target).innerHTML = `
+    <div class="setup">
+      <h3>🔐 Connect ${what} (one-time, 2 minutes)</h3>
+      This tab is powered by the shared <b>Content HQ</b> Airtable base — the real database behind the workflow. Each team member connects once with their own token; it's stored <b>only in this browser</b>, never uploaded anywhere.
+      <ol>
+        <li>Go to <a href="https://airtable.com/create/tokens" target="_blank">airtable.com/create/tokens</a> → <b>Create new token</b></li>
+        <li>Scopes: <code>data.records:read</code> + <code>data.records:write</code></li>
+        <li>Access: add the <b>Content HQ</b> base</li>
+        <li>Create, copy the token, paste it below:</li>
+      </ol>
+      <input type="password" id="at-token-input" placeholder="pat…">
+      <button class="btn" onclick="saveToken()">Connect</button>
+      <div class="stamp" style="margin-top:12px">No Airtable account yet? Ask Andrei for an invite to the base first.</div>
+    </div>`;
+}
+function saveToken(){
+  const v = document.getElementById("at-token-input").value.trim();
+  if (!v) return toast("Paste a token first");
+  store("hq-at-token", v);
+  toast("Connected — loading…");
+  loadStudio(true);
+}
+
+async function loadStudio(force){
+  const body = document.getElementById("studio-body");
+  const lib = document.getElementById("library-body");
+  if (!AT.token()){ setupPanel("studio-body", "the Content Studio"); setupPanel("library-body", "the Reference Library"); return; }
+  if (loaded && !force){ renderBoard(); renderLibrary(); return; }
+  body.innerHTML = `<div class="empty">Loading pipeline from Airtable…</div>`;
+  try {
+    const [p, l] = await Promise.all([AT.list(AT.tables.pipeline), AT.list(AT.tables.library)]);
+    PIPE = p; LIB = l; LIB_BY_ID = {}; l.forEach(r => LIB_BY_ID[r.id] = r);
+    loaded = true;
+    document.getElementById("studio-stamp").textContent = "Live · " + PIPE.length + " items · synced " + new Date().toLocaleTimeString();
+    renderBoard(); renderLibrary();
+  } catch(e){
+    if (e.message === "AUTH"){ store("hq-at-token", ""); setupPanel("studio-body", "the Content Studio"); setupPanel("library-body", "the Reference Library"); toast("Token rejected — reconnect"); }
+    else { body.innerHTML = `<div class="callout"><b>Couldn't reach Airtable.</b><br>${esc(e.message)}</div>`; }
+  }
+}
+
+/* ---------- reference chips ---------- */
+function refMediaThumb(rec){
+  const att = (rec.fields["Media"] || rec.fields["Reference Media"] || [])[0];
+  if (att) return (att.thumbnails && (att.thumbnails.large || att.thumbnails.small) || {}).url || att.url;
+  return ytThumb(rec.fields["URL"]);
+}
+function refChip(rec){
+  const f = rec.fields, img = refMediaThumb(rec);
+  const icon = PLATFORM_ICON[f["Platform"]] || "🔗";
+  return `<a class="refchip" href="${esc(f["URL"] || "#")}" target="_blank" title="${esc(f["Why It Worked"] || "")}">
+    ${img ? `<img src="${esc(img)}" loading="lazy">` : `<span class="ph">${icon}</span>`}
+    <span><span class="rl">${esc(f["Title"] || "Untitled")}</span><span class="rm">${esc(f["Creator"] || "")}${f["Metric"] ? " · " + esc(f["Metric"]) : ""}</span></span>
+  </a>`;
+}
+function plainRefChip(r){ /* for todos.js refs: {label,url,metric,img} */
+  const img = r.img || ytThumb(r.url);
+  return `<a class="refchip" href="${esc(r.url || "#")}" target="_blank">
+    ${img ? `<img src="${esc(img)}" loading="lazy">` : `<span class="ph">🔗</span>`}
+    <span><span class="rl">${esc(r.label || r.url)}</span>${r.metric ? `<span class="rm">${esc(r.metric)}</span>` : ""}</span>
+  </a>`;
+}
+
+/* ---------- kanban board ---------- */
+function apprPill(a){
+  const cls = a === APPR.ok ? "appr-ok" : a === APPR.changes ? "appr-changes" : a === APPR.no ? "appr-no" : "appr-pending";
+  return a ? `<span class="pill ${cls}">${esc(a)}</span>` : "";
+}
+function matchesFilters(f){
+  const s = (document.getElementById("f-search").value || "").toLowerCase();
+  const pf = document.getElementById("f-platform").value;
+  const pr = document.getElementById("f-priority").value;
+  const ap = document.getElementById("f-approval").value;
+  if (s && !((f["Title"]||"") + " " + (f["Hook / Angle"]||"") + " " + (f["Why / Data"]||"")).toLowerCase().includes(s)) return false;
+  if (pf && !(f["Platforms"]||[]).includes(pf)) return false;
+  if (pr && f["Priority"] !== pr) return false;
+  if (ap && f["Approval"] !== ap) return false;
+  return true;
+}
+function renderBoard(){
+  const body = document.getElementById("studio-body");
+  const cols = STAGES.map(stage => {
+    const items = PIPE.filter(r => (r.fields["Stage"] || "💡 Idea") === stage && matchesFilters(r.fields));
+    const cards = items.map(r => {
+      const f = r.fields;
+      const thumbs = (f["References"] || []).map(id => LIB_BY_ID[id]).filter(Boolean).map(refMediaThumb).filter(Boolean).slice(0, 3);
+      const att = (f["Reference Media"] || []).map(a => (a.thumbnails && (a.thumbnails.large||a.thumbnails.small)||{}).url || a.url).slice(0, 3 - thumbs.length);
+      const all = thumbs.concat(att);
+      return `<div class="kitem" draggable="true" data-id="${r.id}" onclick="openCard('${r.id}')">
+        <div class="t">${esc(f["Title"])}</div>
+        <div class="meta">
+          ${f["Priority"] ? `<span class="pill ${f["Priority"].includes("P1") ? "p1" : ""}">${esc(f["Priority"])}</span>` : ""}
+          ${apprPill(f["Approval"])}
+          ${(f["Platforms"]||[]).map(p => `<span class="pill">${PLATFORM_ICON[p]||""} ${esc(p)}</span>`).join("")}
+          ${f["Assigned To"] ? `<span class="pill">👤 ${esc(f["Assigned To"])}</span>` : ""}
+          ${(f["Feedback Log"]||"").trim() ? `<span class="pill">💬 ${(f["Feedback Log"].match(/\n/g)||[]).length + 1}</span>` : ""}
+        </div>
+        ${all.length ? `<div class="thumbs">${all.map(u => `<img src="${esc(u)}" loading="lazy">`).join("")}</div>` : ""}
+      </div>`;
+    }).join("");
+    return `<div class="kcol" data-stage="${esc(stage)}"><h4><span>${esc(stage)}</span><span>${items.length}</span></h4>${cards || `<div class="empty">Empty</div>`}</div>`;
+  }).join("");
+  body.innerHTML = `<div class="board">${cols}</div>`;
+  wireDnD();
+}
+function wireDnD(){
+  document.querySelectorAll(".kitem").forEach(el => {
+    el.addEventListener("dragstart", e => { e.dataTransfer.setData("text/plain", el.dataset.id); el.classList.add("dragging"); });
+    el.addEventListener("dragend", () => el.classList.remove("dragging"));
+  });
+  document.querySelectorAll(".kcol").forEach(col => {
+    col.addEventListener("dragover", e => { e.preventDefault(); col.classList.add("dragover"); });
+    col.addEventListener("dragleave", () => col.classList.remove("dragover"));
+    col.addEventListener("drop", async e => {
+      e.preventDefault(); col.classList.remove("dragover");
+      const id = e.dataTransfer.getData("text/plain");
+      const stage = col.dataset.stage;
+      const rec = PIPE.find(r => r.id === id);
+      if (!rec || rec.fields["Stage"] === stage) return;
+      rec.fields["Stage"] = stage; renderBoard();
+      try { await AT.update(AT.tables.pipeline, id, { "Stage": stage }); toast("Moved to " + stage); }
+      catch(err){ toast("⚠️ Save failed — refreshing"); loadStudio(true); }
+    });
+  });
+}
+
+/* ---------- card modal ---------- */
+let CURRENT = null;
+function closeModal(){ document.getElementById("overlay").classList.remove("on"); CURRENT = null; }
+document.getElementById("overlay").addEventListener("click", e => { if (e.target.id === "overlay") closeModal(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+
+function openCard(id){
+  const rec = PIPE.find(r => r.id === id);
+  if (!rec) return;
+  CURRENT = id;
+  const f = rec.fields;
+  const refs = (f["References"] || []).map(rid => LIB_BY_ID[rid]).filter(Boolean);
+  const atts = (f["Reference Media"] || []);
+  document.getElementById("modal").innerHTML = `
+    <h2>${esc(f["Title"])}</h2>
+    <div class="sub">${esc(f["Stage"]||"")} · ${esc(f["Approval"]||"")} · ${esc(f["Format"]||"")} · added by ${esc(f["Added By"]||"—")} · source: ${esc(f["Source"]||"—")}</div>
+
+    <div class="btnrow" style="margin:0 0 18px">
+      <button class="btn green sm" onclick="setApproval('${APPR.ok}')">👍 Approve</button>
+      <button class="btn amber sm" onclick="setApproval('${APPR.changes}')">✏️ Request changes</button>
+      <button class="btn red sm" onclick="setApproval('${APPR.no}')">👎 Reject</button>
+      <div class="right">
+        <select id="m-stage" onchange="setStage(this.value)">${STAGES.map(s => `<option ${s===f["Stage"]?"selected":""}>${s}</option>`).join("")}</select>
+      </div>
+    </div>
+
+    <div class="fld"><label>Title</label><input type="text" id="m-title" value="${esc(f["Title"]||"")}"></div>
+    <div class="fld"><label>Hook / Angle</label><textarea id="m-hook">${esc(f["Hook / Angle"]||"")}</textarea></div>
+    <div class="fld"><label>Script / Draft (the long-form content)</label><textarea id="m-script" class="tall" placeholder="Paste or write the script, caption, thread or newsletter here…">${esc(f["Script / Draft"]||"")}</textarea></div>
+    <div class="fld"><label>Why / Data</label><textarea id="m-why">${esc(f["Why / Data"]||"")}</textarea></div>
+    <div class="fld"><label>Reference links (one per line: url | label | metric)</label><textarea id="m-links">${esc(f["Reference Links"]||"")}</textarea></div>
+
+    ${refs.length ? `<div class="fld"><label>📎 Linked references</label><div class="refs">${refs.map(refChip).join("")}</div></div>` : ""}
+    ${atts.length ? `<div class="fld"><label>🖼 Attached media (add more in Airtable)</label><div class="refs">${atts.map(a => `<a class="refchip" href="${esc(a.url)}" target="_blank">${(a.thumbnails&&a.thumbnails.small)?`<img src="${esc(a.thumbnails.small.url)}">`:`<span class="ph">📄</span>`}<span><span class="rl">${esc(a.filename)}</span></span></a>`).join("")}</div></div>` : ""}
+
+    <div class="fld"><label>💬 Feedback & suggestions</label>
+      <div class="feedlog" id="m-feedlog">${esc(f["Feedback Log"]||"") || "No feedback yet."}</div>
+      <div class="commentrow"><input type="text" id="m-comment" placeholder="Leave a comment or suggestion…" onkeydown="if(event.key==='Enter')addComment()"><button class="btn sm" onclick="addComment()">Send</button></div>
+    </div>
+
+    <div class="btnrow">
+      <button class="btn" onclick="saveCard()">💾 Save changes</button>
+      <button class="btn ghost" onclick="closeModal()">Close</button>
+      <div class="right"><a class="btn ghost sm" href="https://airtable.com/${AT.baseId}" target="_blank">Open in Airtable ↗</a></div>
+    </div>`;
+  document.getElementById("overlay").classList.add("on");
+}
+async function patchCurrent(fields, msg){
+  const rec = PIPE.find(r => r.id === CURRENT);
+  if (!rec) return;
+  Object.assign(rec.fields, fields);
+  try { await AT.update(AT.tables.pipeline, CURRENT, fields); if (msg) toast(msg); }
+  catch(e){ toast("⚠️ Save failed"); }
+  renderBoard();
+}
+function feedbackLine(text){
+  const d = new Date(), ts = d.toISOString().slice(0,10) + " " + d.toTimeString().slice(0,5);
+  return `[${ts}] ${myName() || "Anonymous"}: ${text}`;
+}
+async function setApproval(val){
+  const who = myName() || askName();
+  const rec = PIPE.find(r => r.id === CURRENT); if (!rec) return;
+  const fields = { "Approval": val };
+  const log = (rec.fields["Feedback Log"] || "");
+  fields["Feedback Log"] = (log ? log + "\n" : "") + feedbackLine(val);
+  if (val === APPR.ok && rec.fields["Stage"] === "💡 Idea") fields["Stage"] = "✅ Approved";
+  if (val === APPR.no) fields["Stage"] = "❌ Rejected";
+  await patchCurrent(fields, val + " — saved");
+  openCard(CURRENT);
+}
+async function setStage(val){ await patchCurrent({ "Stage": val }, "Moved to " + val); }
+async function addComment(){
+  const inp = document.getElementById("m-comment");
+  const txt = inp.value.trim(); if (!txt) return;
+  if (!myName()) askName();
+  const rec = PIPE.find(r => r.id === CURRENT); if (!rec) return;
+  const log = (rec.fields["Feedback Log"] || "");
+  const nl = (log ? log + "\n" : "") + feedbackLine(txt);
+  inp.value = "";
+  await patchCurrent({ "Feedback Log": nl }, "Comment added");
+  openCard(CURRENT);
+  const el = document.getElementById("m-feedlog"); el.scrollTop = el.scrollHeight;
+}
+async function saveCard(){
+  await patchCurrent({
+    "Title": document.getElementById("m-title").value,
+    "Hook / Angle": document.getElementById("m-hook").value,
+    "Script / Draft": document.getElementById("m-script").value,
+    "Why / Data": document.getElementById("m-why").value,
+    "Reference Links": document.getElementById("m-links").value
+  }, "Saved");
+}
+
+/* ---------- add content ---------- */
+function openAdd(){
+  CURRENT = null;
+  document.getElementById("modal").innerHTML = `
+    <h2>＋ Add content</h2>
+    <div class="sub">Goes straight into the shared pipeline as ${esc(APPR.pending)}.</div>
+    <div class="fld"><label>Title *</label><input type="text" id="a-title" placeholder="e.g. Film: How we lifted checkout CVR 23% for an 8-figure brand"></div>
+    <div class="fld" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+      <span><label>Format</label><select id="a-format"><option>YouTube Long-form</option><option>YouTube Short</option><option>IG Reel</option><option>IG Carousel</option><option>IG Story</option><option>X Thread</option><option>X Post</option><option>X Article</option><option>LinkedIn Post</option><option>LinkedIn Carousel</option><option>Newsletter</option><option>Other</option></select></span>
+      <span><label>Priority</label><select id="a-priority"><option>🔥 P1</option><option selected>P2</option><option>P3</option></select></span>
+      <span><label>Assigned to</label><select id="a-assign"><option>Andrei</option><option>Team</option></select></span>
+    </div>
+    <div class="fld"><label>Platforms (comma-separated: YouTube, Instagram, X, LinkedIn, TikTok, Threads, Facebook, Newsletter)</label><input type="text" id="a-platforms" placeholder="YouTube, Instagram"></div>
+    <div class="fld"><label>Hook / Angle</label><textarea id="a-hook"></textarea></div>
+    <div class="fld"><label>Script / Draft (optional — the long-form content)</label><textarea id="a-script" class="tall"></textarea></div>
+    <div class="fld"><label>Why / Data (optional)</label><textarea id="a-why"></textarea></div>
+    <div class="fld"><label>Reference links (one per line: url | label | metric)</label><textarea id="a-links" placeholder="https://youtube.com/watch?v=… | Max's Claude video | 19.9K views"></textarea></div>
+    <div class="btnrow">
+      <button class="btn" onclick="createContent()">Create</button>
+      <button class="btn ghost" onclick="closeModal()">Cancel</button>
+    </div>`;
+  document.getElementById("overlay").classList.add("on");
+}
+async function createContent(){
+  const title = document.getElementById("a-title").value.trim();
+  if (!title) return toast("Title is required");
+  const platforms = document.getElementById("a-platforms").value.split(",").map(s => s.trim()).filter(Boolean);
+  const fields = {
+    "Title": title,
+    "Stage": "💡 Idea",
+    "Approval": APPR.pending,
+    "Priority": document.getElementById("a-priority").value,
+    "Format": document.getElementById("a-format").value,
+    "Assigned To": document.getElementById("a-assign").value,
+    "Hook / Angle": document.getElementById("a-hook").value,
+    "Script / Draft": document.getElementById("a-script").value,
+    "Why / Data": document.getElementById("a-why").value,
+    "Reference Links": document.getElementById("a-links").value,
+    "Added By": myName() || "Anonymous",
+    "Source": "Manual · dashboard"
+  };
+  if (platforms.length) fields["Platforms"] = platforms;
+  try {
+    const j = await AT.create(AT.tables.pipeline, fields);
+    PIPE.push(j.records[0]);
+    closeModal(); renderBoard(); toast("Added to pipeline ✅");
+  } catch(e){ toast("⚠️ Create failed: " + e.message); }
+}
+
+/* ---------- library ---------- */
+function renderLibrary(){
+  const body = document.getElementById("library-body");
+  if (!AT.token()){ return; }
+  const s = (document.getElementById("l-search").value || "").toLowerCase();
+  const ty = document.getElementById("l-type").value;
+  const pl = document.getElementById("l-plat").value;
+  const items = LIB.filter(r => {
+    const f = r.fields;
+    if (ty && f["Type"] !== ty) return false;
+    if (pl && f["Platform"] !== pl) return false;
+    if (s && !((f["Title"]||"") + " " + (f["Creator"]||"") + " " + (f["Why It Worked"]||"") + " " + (f["Stealable Angle"]||"")).toLowerCase().includes(s)) return false;
+    return true;
+  }).sort((a,b) => (b.fields["Date Spotted"]||"").localeCompare(a.fields["Date Spotted"]||""));
+  body.innerHTML = items.length ? `<div class="libgrid">${items.map(r => {
+    const f = r.fields, img = refMediaThumb(r);
+    const usedBy = PIPE.filter(p => (p.fields["References"]||[]).includes(r.id));
+    return `<div class="libcard">
+      ${img ? `<a href="${esc(f["URL"]||"#")}" target="_blank"><img class="cover" src="${esc(img)}" loading="lazy"></a>` : ""}
+      <div class="body">
+        <span class="pill" style="float:right">${esc(f["Type"]||"")}</span>
+        <div class="t">${esc(f["Title"])}</div>
+        <div class="by">${PLATFORM_ICON[f["Platform"]]||""} ${esc(f["Creator"]||"")} ${f["Date Spotted"] ? "· " + esc(f["Date Spotted"]) : ""}</div>
+        ${f["Metric"] ? `<div class="metric">📊 ${esc(f["Metric"])}</div>` : ""}
+        ${f["Why It Worked"] ? `<div class="why">💡 ${esc(f["Why It Worked"])}</div>` : ""}
+        ${f["Stealable Angle"] ? `<div class="steal">🎯 Steal: ${esc(f["Stealable Angle"])}</div>` : ""}
+        ${usedBy.length ? `<div class="why" style="color:var(--muted)">🔗 Used by: ${usedBy.map(u => esc(u.fields["Title"])).join(" · ")}</div>` : ""}
+        <div class="foot">
+          ${f["URL"] ? `<a class="btn ghost sm" href="${esc(f["URL"])}" target="_blank">View post ↗</a>` : ""}
+          <button class="btn sm" onclick="ideaFromRef('${r.id}')">＋ Make idea from this</button>
+        </div>
+      </div>
+    </div>`;
+  }).join("")}</div>` : `<div class="empty">No references match.</div>`;
+}
+async function ideaFromRef(refId){
+  const ref = LIB_BY_ID[refId]; if (!ref) return;
+  const f = ref.fields;
+  const title = prompt("Idea title:", f["Stealable Angle"] ? f["Stealable Angle"].split("\n")[0].slice(0, 120) : "Inspired by: " + f["Title"]);
+  if (!title) return;
+  try {
+    const j = await AT.create(AT.tables.pipeline, {
+      "Title": title, "Stage": "💡 Idea", "Approval": APPR.pending, "Priority": "P2",
+      "Why / Data": `Inspired by ${f["Creator"]||""} — "${f["Title"]}" (${f["Metric"]||"no metric"}). ${f["Why It Worked"]||""}`,
+      "References": [refId],
+      "Added By": myName() || "Anonymous", "Source": "Reference Library"
+    });
+    PIPE.push(j.records[0]);
+    renderBoard(); renderLibrary(); toast("Idea created in pipeline ✅");
+    showTab("studio");
+  } catch(e){ toast("⚠️ Create failed"); }
+}
+
+/* ================= Tabs ================= */
+const openTodos = ((HQ.todos||{}).items||[]).filter(t => !isDone(t.id)).length;
+const TABS = [
+  { id: "today", label: "🌅 Today", n: openTodos || null },
+  { id: "studio", label: "🎬 Studio" },
+  { id: "library", label: "📚 Library" },
+  { id: "platforms", label: "📊 Platforms" },
+  { id: "agency", label: "🏭 Agency" },
+  { id: "competitors", label: "🕵️ Competitors" }
+];
+const nav = document.getElementById("nav");
+TABS.forEach(t => {
+  const b = document.createElement("button");
+  b.innerHTML = t.label + (t.n ? `<span class="n">${t.n}</span>` : "");
+  b.onclick = () => showTab(t.id);
+  b.id = "btn-" + t.id;
+  nav.appendChild(b);
+});
+function showTab(id){
+  TABS.forEach(t => {
+    document.getElementById("tab-" + t.id).classList.toggle("on", t.id === id);
+    document.getElementById("btn-" + t.id).classList.toggle("on", t.id === id);
+  });
+  store("hq-tab", id);
+  if (id === "studio" || id === "library") loadStudio();
+}
+
+/* ================= Briefing ================= */
+(function(){
+  const b = HQ.briefing || {};
+  document.getElementById("briefing").innerHTML = `
+    <h2>📋 ${b.headline || "Daily Briefing"}</h2>
+    <p>${b.summary || ""}</p>
+    <div class="stamp" style="margin-top:10px">${stamp(b.updatedAt)}</div>`;
+})();
+
+/* ================= To-dos (now with references) ================= */
+function renderTodos(){
+  const data = HQ.todos || { items: [] };
+  const items = (data.items || []).slice().sort((a,b) => (a.priority||99) - (b.priority||99));
+  const box = document.getElementById("todos");
+  box.innerHTML = items.length ? "" : `<div class="empty">No to-dos yet — the CEO Agent writes these each morning.</div>`;
+  items.forEach(t => {
+    const done = isDone(t.id);
+    const el = document.createElement("div");
+    el.className = "todo" + (done ? " done" : "");
+    el.innerHTML = `
+      <input type="checkbox" ${done ? "checked" : ""}>
+      <div style="flex:1">
+        <div class="t"><span class="tag ${t.type}">${t.type}</span><span class="tag platform">${t.platform}</span>${t.title}</div>
+        ${t.why ? `<div class="why">💭 ${t.why}</div>` : ""}
+        ${(t.refs||[]).length ? `<div class="refs">${t.refs.map(plainRefChip).join("")}</div>` : ""}
+      </div>`;
+    el.querySelector("input").onchange = e => {
+      store("todo-" + t.id, e.target.checked ? "1" : "0");
+      renderTodos();
+    };
+    box.appendChild(el);
+  });
+  const doneCount = items.filter(t => isDone(t.id)).length;
+  const pct = items.length ? Math.round(doneCount / items.length * 100) : 0;
+  document.getElementById("todo-progress").style.width = pct + "%";
+  document.getElementById("todo-progress-label").textContent =
+    `✅ ${doneCount} / ${items.length} done today (${pct}%) · list refreshed ${data.updatedAt || "—"}`;
+}
+renderTodos();
+
+/* ================= Platform cards (unchanged from v1) ================= */
+function kpiBlock(kpis, labels){
+  const d = kpis.deltas || {};
+  return `<div class="kpis">` + Object.entries(labels).map(([k, label]) =>
+    `<div class="kpi"><div class="label">${label}</div><div class="value">${fmt(kpis[k])}${deltaHtml(d[k])}</div></div>`
+  ).join("") + `</div>`;
+}
+function listBlock(title, items, cls=""){
+  if (!items || !items.length) return "";
+  return `<div class="section-label">${title}</div><ul class="plain">${items.map(i=>`<li class="${cls}">${i}</li>`).join("")}</ul>`;
+}
+function postsBlock(title, posts){
+  if (!posts || !posts.length) return "";
+  return `<div class="section-label">${title}</div><div class="posts">${posts.map(p=>
+    `<div class="post"><span>${p.title || p.text || ""}</span><span class="m">${p.metric || ""}</span></div>`).join("")}</div>`;
+}
+function chartBlock(series){
+  if (!series || !(series.points||[]).length) return "";
+  const pts = series.points, W = 320, H = 60, P = 3;
+  const vals = pts.map(p => p.v);
+  const max = Math.max(...vals), min = Math.min(...vals);
+  const x = i => P + i * (W - 2*P) / Math.max(pts.length - 1, 1);
+  const y = v => max === min ? H/2 : P + (H - 2*P) * (1 - (v - min) / (max - min));
+  const line = pts.map((p,i) => `${x(i).toFixed(1)},${y(p.v).toFixed(1)}`).join(" ");
+  const area = `${P},${H} ${line} ${(W-P)},${H}`;
+  const peak = pts.reduce((a,b) => b.v > a.v ? b : a);
+  const pi = pts.indexOf(peak);
+  return `<div class="chart">
+    <div class="cl"><span>📈 ${series.label}</span><span>peak <b>${fmt(peak.v)}</b> (${peak.d})</span></div>
+    <svg viewBox="0 0 ${W} ${H+6}" preserveAspectRatio="none">
+      <polygon points="${area}" fill="rgba(110,168,254,.12)"/>
+      <polyline points="${line}" fill="none" stroke="#6ea8fe" stroke-width="1.8" stroke-linejoin="round"/>
+      <circle cx="${x(pi).toFixed(1)}" cy="${y(peak.v).toFixed(1)}" r="3" fill="#4ade80"/>
+      <circle cx="${x(pts.length-1).toFixed(1)}" cy="${y(pts[pts.length-1].v).toFixed(1)}" r="2.5" fill="#e8ecf4"/>
+    </svg></div>`;
+}
+function renderPlatform(id, emoji, name, d, kpiLabels, topKey, topTitle){
+  if (!d) return;
+  document.getElementById(id).innerHTML = `
+    <h3>${emoji} ${name}</h3>
+    <div class="stamp">${stamp(d.updatedAt)}</div>
+    ${kpiBlock(d.kpis || {}, kpiLabels)}
+    ${chartBlock(d.series)}
+    ${postsBlock(topTitle, d[topKey])}
+    ${listBlock("Insights", d.insights)}
+    ${listBlock("Do next", d.recommendations, "rec")}`;
+}
+renderPlatform("card-instagram", "📸", "Instagram", HQ.instagram,
+  {followers:"Followers", reach7d:"Reach (7d)", engaged7d:"Engaged (7d)", profileVisits7d:"Profile visits (7d)"},
+  "topPosts", "Top posts");
+renderPlatform("card-x", "𝕏", "X / Twitter", HQ.x,
+  {followers:"Followers", impressions7d:"Impressions (7d)", engagementRate7d:"Eng. (7d)", profileVisits7d:"Profile visits (7d)"},
+  "topPosts", "Top posts");
+renderPlatform("card-youtube", "▶️", "YouTube", HQ.youtube,
+  {subscribers:"Subscribers", views7d:"Views (7d)", watchTime7d:"Watch time (7d)", ctr7d:"CTR (7d)"},
+  "topVideos", "Top videos");
+(function(){
+  const yt = HQ.youtube || {};
+  if ((yt.nicheTrends||[]).length){
+    document.getElementById("card-youtube").innerHTML += postsBlock("🔥 Niche trends", yt.nicheTrends.map(t=>({title:`${t.title} — ${t.channel}`, metric: t.views})));
+  }
+})();
+
+/* ================= Agency ================= */
+(function(){
+  const box = document.getElementById("agents");
+  (HQ.agents || []).forEach(a => {
+    const el = document.createElement("div");
+    el.className = "agent";
+    el.innerHTML = `
+      <h3>${a.emoji} ${a.name} <span class="badge ${a.status}">${a.status.replace("-", " ")}</span></h3>
+      <p>${a.role}</p>
+      ${a.blocked ? `<div class="blocked">⏸ ${a.blocked}</div>` : ""}
+      <div class="meta">
+        <span>🗓 ${a.schedule || "—"}</span>
+        ${a.lastRun ? `<span>✅ Last run: ${a.lastRun}</span>` : ""}
+        <span>📁 Writes to: ${(a.outputs||[]).map(o=>`<code>${o}</code>`).join(" ")}</span>
+      </div>`;
+    box.appendChild(el);
+  });
+})();
+
+/* ================= Recipe groups ================= */
+(function(){
+  const groups = document.getElementById("recipe-groups");
+  (HQ.repurposingRecipe || []).forEach(g => {
+    const el = document.createElement("div");
+    el.className = "rgroup";
+    el.innerHTML = `<div class="g">${g.group}</div><ul>${g.items.map(i=>`<li>${i}</li>`).join("")}</ul>`;
+    groups.appendChild(el);
+  });
+})();
+
+/* ================= Competitors ================= */
+(function(){
+  const c = HQ.competitors || {};
+  const box = document.getElementById("competitors");
+  if (!(c.creators||[]).length){
+    box.innerHTML = `<div class="callout"><b>⏸ The Competitor Research Agent is waiting on you.</b><br><br>
+      Give Claude a list of <b>3–8 creators you admire</b> (name + handle + platform).</div>`;
+    return;
+  }
+  box.innerHTML = `
+    <div class="grid">
+      <div class="card"><h3>👥 Tracked creators</h3><div class="stamp">${stamp(c.updatedAt)}</div>
+        <div class="posts">${c.creators.map(cr=>`<div class="post"><span>${cr.name} <span style="color:var(--muted)">${cr.handle||""}</span></span><span class="m">${cr.platform||""}</span></div>`).join("")}</div></div>
+      <div class="card"><h3>💥 Recent outliers</h3>
+        <div class="posts">${(c.outliers||[]).map(o=>`<div class="post"><span><b>${o.creator}</b>: ${o.title}<br><span style="color:var(--muted);font-size:12px">${o.stealableAngle||o.whyItWorked||""}</span></span><span class="m">${o.metric||""}</span></div>`).join("") || '<div class="empty">No outliers logged yet.</div>'}</div>
+        ${listBlock("Insights", c.insights)}</div>
+    </div>
+    <div class="callout" style="margin-top:18px">💡 Full reference cards with thumbnails now live in the <b>📚 Library</b> tab — every outlier is stored there permanently and can be turned into a pipeline idea with one click.</div>`;
+})();
+
+/* ================= wiring ================= */
+document.getElementById("btn-add").onclick = openAdd;
+document.getElementById("btn-refresh").onclick = () => loadStudio(true);
+document.getElementById("btn-lib-refresh").onclick = () => loadStudio(true);
+["f-search","f-platform","f-priority","f-approval"].forEach(id => document.getElementById(id).addEventListener("input", renderBoard));
+["l-search","l-type","l-plat"].forEach(id => document.getElementById(id).addEventListener("input", renderLibrary));
+(function(){
+  const sel = document.getElementById("f-platform");
+  Object.keys(PLATFORM_ICON).filter(p => p !== "Other").forEach(p => { const o = document.createElement("option"); o.textContent = p; sel.appendChild(o); });
+})();
+
+/* ================= Init ================= */
+showTab(load("hq-tab") || "today");
+</script>
+</body>
+</html>

@@ -32,6 +32,11 @@ Personal brand around **CRO / e-commerce growth, agency building, and entreprene
 | Osh Alchemy | — | [@oshalchemy](https://x.com/oshalchemy) | — | X-native ecom/marketing writing style |
 | Kasper Dolk | — | [@kasper_dolk](https://x.com/kasper_dolk) | — | X-native DTC/agency content |
 | DTC Pages | — | [@dtcpages](https://x.com/dtcpages) | — | Landing page / CRO teardown format on X |
+| Dara Denney | — | [@DenneyDara](https://x.com/DenneyDara) | [daradenney](https://www.youtube.com/daradenney) | Performance creative / Meta ads strategist — best-in-class educational YouTube in adjacent niche |
+| Jack Boxer | [@jboxer_](https://www.instagram.com/jboxer_/) | — | — | Vysionary — premium/luxury omnichannel ecom strategy on IG |
+| Nathan Perdriau | [@nathan.perdriau](https://www.instagram.com/nathan.perdriau/) | — | — | Blue Sense Digital co-founder — high-volume IG strategy (8-12 posts/day) feeding paid funnels |
+
+Saved reference (added by Andrei, 2026-07-07): [Instagram carousel — slide 9](https://www.instagram.com/p/DXiybBik6Mp/?img_index=9) — flagged for the swipe file / Reference Library.
 
 ## Voice notes
 - Direct, practical, numbers-driven; show real results
